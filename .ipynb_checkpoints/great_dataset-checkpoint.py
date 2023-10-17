@@ -43,10 +43,6 @@ class GReaTDataset(Dataset):
                 for i in shuffle_idx
             ]
         )
-
-        #### check shuffled_text ###########
-        # print(f'[{shuffled_text}]')
-        ###################################
         tokenized_text = self.tokenizer(shuffled_text, padding=True)
         return tokenized_text
 

@@ -1,0 +1,428 @@
+################################
+import numpy as np
+
+import pandas as pd
+
+# all imports should go here
+
+import numpy as np
+import matplotlib.pyplot as plt
+import rasterio as rio
+from rasterio.plot import show
+
+import sklearn
+
+import skimage.exposure
+
+# access package for AWS access
+# import boto3
+
+import sys
+import os
+import subprocess
+import datetime
+import platform
+import datetime
+
+from tqdm import tqdm
+
+# import ee
+import h5py
+import numpy as np
+from datetime import datetime, timedelta  # Import timedelta here
+import random
+import pandas as pd
+
+import time
+import rasterio as rio
+################################
+
+import shutil
+
+# Execute only once!
+import os
+import sys
+
+class HLSDataSet:
+    def __init__(self, path='./aispace/data/L8-100x100'):
+        self.data_path = path
+        self.input_data = pd.read_csv(self.data_path)
+        self.BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
+        self.FMSK_LIST = ['cirrus', 'cloud', 'adj_cloud', 'cloud_shadow', 'snow_ice', 'water', 'aero' ]
+        self.ANG_LIST = ['SAA', 'SZA', 'VAA', 'VZA',]
+
+        self.data = None
+        self.nan_data = None
+        self.clear_data = None
+        self.cloud_data = None
+
+        self.impute_data = None
+        self.inference_data = None
+
+
+    def _image_df(self, input):
+
+        # input = self.input_data
+
+        input = input
+        
+        box_x_size = input['X'].max() - input['X'].min() + 1
+        box_y_size = input['Y'].max() - input['Y'].min() + 1
+    
+        def _get_img_nan(input, bnd_list=['B04', 'B03', 'B02']):
+    
+            print(input['DOY'].unique())
+    
+            df = input[bnd_list].copy()
+    
+            df[df > 0] = 0
+            df[df == -9999] = 1
+            df[df < 0] = 0
+    
+            image = df.to_numpy()  # df[chanel_list]
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            nans = np.dstack((image[0,:,:], image[1,:,:], image[2,:,:]))
+    
+            return nans
+    
+    
+        def _get_img_rgb(input, bnd_list=['B04', 'B03', 'B02']):
+            df = input[bnd_list].copy()
+    
+            # df[df > 0] = 0
+            df[df == -9999] = np.nan
+            # df[df < 0] = 0
+    
+            image = df.to_numpy()
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            # Convert the int16 array to int64
+            # image = image.astype(np.uint64)
+    
+            r_ = (8200, 16000)
+            g_ = (8500, 14000)
+            b_ = (7500, 12000)
+    
+    
+            def generalized_normalization(band, rgb):
+                # Apply your normalization method here
+                # Example: Stretch and scale values to 0-255
+                band = np.ma.array (band, mask=np.isnan(band))
+    
+                ### FOR HLS #################
+                band = 0.0001 * band
+                band = np.where(band > 0.3, 0.3, band)
+                min_val = -0.063
+                max_val = 0.3
+    
+                # min_val = np.min(band)
+                # max_val = np.max(band)
+                # min_val = rgb[0]
+                # max_val = rgb[1]
+                # print(f'gn:{min_val}, {max_val}')
+                normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+                #
+                # Replace elements greater than 2000 with 1
+                # print('band:', band.min(), band.max())
+                normalized_band[normalized_band == np.nan] = 255
+                return normalized_band
+    
+            # Scale the bands to 8-bit
+            scaled_red = generalized_normalization(image[2,:,:], r_)
+            scaled_green = generalized_normalization(image[1,:,:], g_)
+            scaled_blue = generalized_normalization(image[0,:,:], b_)
+    
+            rgb = np.dstack((scaled_red, scaled_green, scaled_blue))
+    
+            return rgb
+    
+        def _get_img(input, bnd_list):
+            image = input[bnd_list].to_numpy()  # df[chanel_list]
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            # Convert the int16 array to int64
+            image = image.astype(np.uint64)
+    
+            return image[0,:,:]
+    
+        image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
+        image_rgb = _get_img_rgb(input, bnd_list=['B02', 'B03', 'B04'])
+        image_cirrus = _get_img(input, bnd_list=['cirrus'])
+        image_cloud = _get_img(input, bnd_list=['cloud'])
+        image_adjcloud = _get_img(input, bnd_list=['adj_cloud'])
+        image_cloud_shadow = _get_img(input, bnd_list=['cloud_shadow'])
+        image_snow_ice = _get_img(input, bnd_list=['snow_ice'])
+        image_water = _get_img(input, bnd_list=['water'])
+    
+        # image_rgb_list = [image_rgb, image_cirrus,] # image_cloud, image_adjcloud, image_cloud_shadow, image_snow_ice, image_water]
+    
+        # image_nan_list = [image_nan[:,:,0], image_nan[:,:,1], image_nan[:,:,2]]
+        # # Create subplots
+        # fig, axes = plt.subplots(1, len(image_nan_list), figsize=(18, 22))
+        # # Flatten the axes array to simplify indexing
+        # axes = axes.ravel()
+        # # print(image_nan_list[0].shape)
+        # for ii in range(0,len(image_nan_list)):
+        #     axes[ii].imshow(image_nan_list[ii], cmap='gray')  # You can specify a colormap
+        # plt.tight_layout()
+        # plt.show()
+    
+        # # Create subplots
+        # fig, axes = plt.subplots(1, len(image_rgb_list), figsize=(18, 22))
+        # # Flatten the axes array to simplify indexing
+        # axes = axes.ravel()
+        # # print(image_rgb_list[0].shape)
+        # axes[0].imshow(image_rgb_list[0])
+        # # Loop through the images and plot them
+        # for ii in range(1,len(image_rgb_list)):
+        #     axes[ii].imshow(image_rgb_list[ii], cmap='gray')  # You can specify a colormap
+        # plt.tight_layout()
+        # plt.show()
+    
+        image_rgb_list = [image_rgb, image_cirrus, image_cloud, image_adjcloud, image_cloud_shadow, image_snow_ice, image_water]
+    
+        # Create subplots
+        fig, axes = plt.subplots(1, len(image_rgb_list), figsize=(18, 22))
+        # Flatten the axes array to simplify indexing
+        axes = axes.ravel()
+        # print(image_rgb_list[0].shape)
+        axes[0].imshow(image_rgb_list[0])
+        # Loop through the images and plot them
+        for ii in range(1,len(image_rgb_list)):
+            axes[ii].imshow(image_rgb_list[ii], cmap='gray')  # You can specify a colormap
+        plt.tight_layout()
+        plt.show()
+    
+
+    def _get_data_doys(self, doys = [171, 179, 187, 195, 203, 211, 219], SHOW=True):
+        train_data = self.input_data
+        otput_data_list = []
+        for doy in doys:
+            # data = _get_hls(doy)
+            # croped_data = _crop_data(data, doy)
+            tr_df = train_data[ train_data['DOY'] == int(doy)].copy()
+            otput_data_list.append(tr_df)
+            if SHOW == True:
+                self._image_df(tr_df)
+            # train_data_list.append(croped_data)
+        # fn
+        output_data = pd.concat(otput_data_list, axis=0)
+
+        self.data = output_data.copy()
+
+        self.data = self.data.reset_index(drop=True)
+
+        return self.data
+
+    def _set_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'cloud', 'adj_cloud', 'cloud_shadow', 'X', 'Y', 'DOY']):
+
+        before_list = self.data.columns.to_list()
+        
+        self.data = self.data[final_columns_list]
+        # train_data.columns = final_columns_list
+        
+        print(f'Change columns list: {before_list}->{self.data.columns.to_list()}')
+
+        self.data = self.data.reset_index(drop=True)
+
+        return self.data
+
+    def _nan_9999(self, ):
+        # Replace -9999 with np.nan
+        self.data.replace(-9999, np.nan, inplace=True)
+        # Separate rows with NaN values and without NaN values
+        # df_with_nan = 
+        # df_without_nan = df[~df.isnull().any(axis=1)]
+        self.nan_data = self.data[self.data.isnull().any(axis=1)].copy()
+        # self.data = self.data[~self.data.isnull().any(axis=1)].copy()
+
+        self.nan_data = self.nan_data.reset_index(drop=True)
+        self.data = self.data.reset_index(drop=True)
+        
+        return self.data, self.nan_data
+
+    ###### GET CLEAR PIXELS ONLY ###########################
+    def _set_clear_cloud(self, ):
+        # Remove rows containing np.nan in any column
+        train_cleaned = self.data.dropna(how='any').copy()
+        self.clear_data = train_cleaned.loc[(train_cleaned[f'cloud'] == 0) & \
+                                            (train_cleaned[f'adj_cloud'] == 0) & \
+                                            (train_cleaned[f'cloud_shadow'] == 0)].copy()
+
+        self.cloud_data = train_cleaned.loc[(train_cleaned[f'cloud'] == 1) | \
+                                            (train_cleaned[f'adj_cloud'] == 1) | \
+                                            (train_cleaned[f'cloud_shadow'] == 1)].copy()
+
+        self.clear_data = self.clear_data.reset_index(drop=True)
+        self.cloud_data = self.cloud_data.reset_index(drop=True)
+        
+        return self.clear_data, self.cloud_data
+
+    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'X', 'Y', 'DOY']):
+
+        before_list = self.data.columns.to_list()
+        
+        self.data = self.data[final_columns_list]
+        self.nan_data = self.nan_data[final_columns_list]
+        self.clear_data = self.clear_data[final_columns_list]
+        self.cloud_data = self.cloud_data[final_columns_list]
+        # train_data.columns = final_columns_list
+        
+        print(f'Change columns list: {before_list}->{self.data.columns.to_list()}')
+
+        self.data = self.data.reset_index(drop=True)
+        self.nan_data = self.nan_data.reset_index(drop=True)
+        self.clear_data = self.clear_data.reset_index(drop=True)
+        self.cloud_data = self.cloud_data.reset_index(drop=True)
+        
+        return self.data, self.nan_data, self.clear_data, self.cloud_data
+
+    def _impute_data(self,):
+        self.impute_data = self.cloud_data.copy()
+        # display(self.impute_data)
+        self.impute_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+
+        self.impute_data = pd.concat([self.impute_data, self.nan_data], axis=0).copy()
+
+        return self.impute_data
+
+    def _inference_data(self,):
+        self.inference_data = pd.concat([self.impute_data, self.clear_data], axis=0)
+        # Sort the DataFrame by 'X', 'Y', and 'DOY'
+        self.inference_data = self.inference_data.sort_values(by=['Y', 'X', 'DOY', ])
+        # test_data = test_data.sort_values(by=['Y', 'X', 'DOY'])
+        return self.inference_data
+
+    def _inference_imshow(self,):
+        doys = self.inference_data['DOY'].unique()
+
+        # self.impute_data = pd.concat([self.impute_data, self.nan_data], axis=0)
+        test_data = self.inference_data
+        orig_data = self.data
+        
+        for doy in doys:
+            # data = _get_hls(doy)
+            # croped_data = _crop_data(data, doy)
+            tr_df  = test_data[ test_data['DOY'] == int(doy)].copy()
+            tr_df2 = orig_data[ orig_data['DOY'] == int(doy)].copy()
+            # otput_data_list.append(tr_df)
+            self._image_inference(tr_df2, tr_df)
+
+    def _image_inference(self, input1, input2):
+        # BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
+        # FMSK_LIST = ['cirrus', 'cloud', 'adj_cloud', 'cloud_shadow', 'snow_ice', 'water', 'aero' ]
+        # ANG_LIST = ['SAA', 'SZA', 'VAA', 'VZA',]
+    
+        input = input1
+    
+        box_x_size = input['X'].max() - input['X'].min() + 1
+        box_y_size = input['Y'].max() - input['Y'].min() + 1
+    
+        def _get_img_nan(input, bnd_list=['B04', 'B03', 'B02']):
+    
+            print(input['DOY'].unique())
+    
+            df = input[bnd_list].copy()
+    
+            df[df > 0] = 0
+            df[df == -9999] = 1
+            df[df < 0] = 0
+    
+            image = df.to_numpy()  # df[chanel_list]
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            nans = np.dstack((image[0,:,:], image[1,:,:], image[2,:,:]))
+    
+            return nans
+    
+    
+        def _get_img_rgb(input, bnd_list=['B04', 'B03', 'B02']):
+            df = input[bnd_list].copy()
+    
+            # df[df > 0] = 0
+            df[df == -9999] = np.nan
+            # df[df < 0] = 0
+    
+            image = df.to_numpy()
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            # Convert the int16 array to int64
+            # image = image.astype(np.uint64)
+    
+            r_ = (8200, 16000)
+            g_ = (8500, 14000)
+            b_ = (7500, 12000)
+    
+    
+            def generalized_normalization(band, rgb):
+                # Apply your normalization method here
+                # Example: Stretch and scale values to 0-255
+                band = np.ma.array (band, mask=np.isnan(band))
+    
+                ### FOR HLS #################
+                band = 0.0001 * band
+                band = np.where(band > 0.3, 0.3, band)
+                min_val = -0.063
+                max_val = 0.3
+    
+                # min_val = np.min(band)
+                # max_val = np.max(band)
+                # min_val = rgb[0]
+                # max_val = rgb[1]
+                # print(f'gn:{min_val}, {max_val}')
+                normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+                #
+                # Replace elements greater than 2000 with 1
+                # print('band:', band.min(), band.max())
+                normalized_band[normalized_band == np.nan] = 255
+                return normalized_band
+    
+            # Scale the bands to 8-bit
+            scaled_red = generalized_normalization(image[2,:,:], r_)
+            scaled_green = generalized_normalization(image[1,:,:], g_)
+            scaled_blue = generalized_normalization(image[0,:,:], b_)
+    
+            rgb = np.dstack((scaled_red, scaled_green, scaled_blue))
+    
+            return rgb
+    
+        def _get_img(input, bnd_list):
+            image = input[bnd_list].to_numpy()  # df[chanel_list]
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            # Convert the int16 array to int64
+            image = image.astype(np.uint64)
+    
+            return image[0,:,:]
+    
+        # image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
+        image_rgb = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
+    
+        image_rgb2 = _get_img_rgb(input2, bnd_list=['B02', 'B03', 'B04'])
+    
+        image_rgb_list = [image_rgb, image_rgb2]
+    
+        # Create subplots
+        fig, axes = plt.subplots(1, len(image_rgb_list), figsize=(18, 22))
+        # Flatten the axes array to simplify indexing
+        axes = axes.ravel()
+        # print(image_rgb_list[0].shape)
+        axes[0].imshow(image_rgb_list[0])
+        # Loop through the images and plot them
+        for ii in range(1,len(image_rgb_list)):
+            axes[ii].imshow(image_rgb_list[ii], cmap='gray')  # You can specify a colormap
+        plt.tight_layout()
+        plt.show()
