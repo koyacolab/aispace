@@ -74,12 +74,13 @@ class GReaT:
              see here the full list of all possible values
              https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
         """
+        device = torch.device("cuda")
         # Load Model and Tokenizer from HuggingFace
         self.efficient_finetuning = efficient_finetuning
         self.llm = llm
         self.tokenizer = AutoTokenizer.from_pretrained(self.llm)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.llm)
+        self.model = AutoModelForCausalLM.from_pretrained(self.llm).to(device)
 
         if self.efficient_finetuning == "lora":
             # Lazy importing
