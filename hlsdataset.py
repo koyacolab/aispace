@@ -256,11 +256,11 @@ class HLSDataSet:
         # Remove rows containing np.nan in any column
         train_cleaned = self.data.dropna(how='any').copy()
         self.clear_data = train_cleaned.loc[(train_cleaned[f'cloud'] == 0) & \
-                                            (train_cleaned[f'adj_cloud'] == 0) & \
+                                            # (train_cleaned[f'adj_cloud'] == 0) & \
                                             (train_cleaned[f'cloud_shadow'] == 0)].copy()
 
         self.cloud_data = train_cleaned.loc[(train_cleaned[f'cloud'] == 1) | \
-                                            (train_cleaned[f'adj_cloud'] == 1) | \
+                                            # (train_cleaned[f'adj_cloud'] == 1) | \
                                             (train_cleaned[f'cloud_shadow'] == 1)].copy()
 
         self.clear_data = self.clear_data.reset_index(drop=True)
@@ -295,7 +295,7 @@ class HLSDataSet:
         self.to_impute = pd.concat([self.to_impute, self.nan_data], axis=0).copy()
         self.imputed_data = self.to_impute
         
-        print('to_impute')
+        print('to_impute:')
         display(self.to_impute)
 
         return self.to_impute
