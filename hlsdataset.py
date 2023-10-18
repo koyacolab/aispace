@@ -44,7 +44,7 @@ import os
 import sys
 
 class HLSDataSet:
-    def __init__(self, path='./aispace/data/L8-100x100'):
+    def __init__(self, table_dtype = 'float16', path='./aispace/data/L8-100x100'):
         self.data_path = path
         self.input_data = pd.read_csv(self.data_path)
         self.BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
@@ -56,8 +56,11 @@ class HLSDataSet:
         self.clear_data = None
         self.cloud_data = None
 
-        self.impute_data = None
+        self.to_impute = None
+        self.imputed_data = None
         self.inference_data = None
+
+        self.table_dtype = table_dtype
 
 
     def _image_df(self, input):
@@ -66,8 +69,8 @@ class HLSDataSet:
 
         input = input
         
-        box_x_size = input['X'].max() - input['X'].min() + 1
-        box_y_size = input['Y'].max() - input['Y'].min() + 1
+        box_x_size = (input['X'].max() - input['X'].min() + 1).astype('int')
+        box_y_size = (input['Y'].max() - input['Y'].min() + 1).astype('int')
     
         def _get_img_nan(input, bnd_list=['B04', 'B03', 'B02']):
     
@@ -269,10 +272,10 @@ class HLSDataSet:
 
         before_list = self.data.columns.to_list()
         
-        self.data = self.data[final_columns_list]
-        self.nan_data = self.nan_data[final_columns_list]
-        self.clear_data = self.clear_data[final_columns_list]
-        self.cloud_data = self.cloud_data[final_columns_list]
+        self.data = self.data[final_columns_list].astype(self.table_dtype)
+        self.nan_data = self.nan_data[final_columns_list].astype(self.table_dtype)
+        self.clear_data = self.clear_data[final_columns_list].astype(self.table_dtype)
+        self.cloud_data = self.cloud_data[final_columns_list].astype(self.table_dtype)
         # train_data.columns = final_columns_list
         
         print(f'Change columns list: {before_list}->{self.data.columns.to_list()}')
@@ -284,17 +287,23 @@ class HLSDataSet:
         
         return self.data, self.nan_data, self.clear_data, self.cloud_data
 
-    def _impute_data(self,):
-        self.impute_data = self.cloud_data.copy()
+    def _to_impute(self,):
+        self.to_impute = self.cloud_data.copy()
         # display(self.impute_data)
-        self.impute_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+        self.to_impute.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
 
-        self.impute_data = pd.concat([self.impute_data, self.nan_data], axis=0).copy()
+        self.to_impute = pd.concat([self.to_impute, self.nan_data], axis=0).copy()
+        self.imputed_data = self.to_impute
 
-        return self.impute_data
+        return self.to_impute
+
+    def _imputed_data(self, data):
+        self.imputed_data = data.copy()
+
+        return self.imputed_data
 
     def _inference_data(self,):
-        self.inference_data = pd.concat([self.impute_data, self.clear_data], axis=0)
+        self.inference_data = pd.concat([self.imputed_data, self.clear_data], axis=0)
         # Sort the DataFrame by 'X', 'Y', and 'DOY'
         self.inference_data = self.inference_data.sort_values(by=['Y', 'X', 'DOY', ])
         # test_data = test_data.sort_values(by=['Y', 'X', 'DOY'])
@@ -322,8 +331,8 @@ class HLSDataSet:
     
         input = input1
     
-        box_x_size = input['X'].max() - input['X'].min() + 1
-        box_y_size = input['Y'].max() - input['Y'].min() + 1
+        box_x_size = (input['X'].max() - input['X'].min() + 1).astype('int')
+        box_y_size = (input['Y'].max() - input['Y'].min() + 1).astype('int')
     
         def _get_img_nan(input, bnd_list=['B04', 'B03', 'B02']):
     
