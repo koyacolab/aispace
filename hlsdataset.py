@@ -294,6 +294,9 @@ class HLSDataSet:
 
         self.to_impute = pd.concat([self.to_impute, self.nan_data], axis=0).copy()
         self.imputed_data = self.to_impute
+        
+        print('to_impute')
+        display(self.to_impute)
 
         return self.to_impute
 
