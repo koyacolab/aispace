@@ -56,6 +56,10 @@ class HLSDataSet:
         self.clear_data = None
         self.cloud_data = None
 
+        #### train + test = clear always!!!! ###################
+        self.test_data = None
+        self.train_data = None
+
         self.to_impute = None
         self.imputed_data = None
         self.inference_data = None
@@ -287,6 +291,27 @@ class HLSDataSet:
         
         return self.data, self.nan_data, self.clear_data, self.cloud_data
 
+    def _set_train_test_data(self, doy, x1, y1, x2, y2):
+
+        x_shift = 1500
+        y_shift = 925
+        
+        self.test_data = self.clear_data.loc[(self.clear_data['DOY'] == doy) & \
+                                             (self.clear_data['X'] >= x1 + x_shift) & \
+                                             (self.clear_data['X'] <= x2 + x_shift) & \
+                                             (self.clear_data['Y'] >= y1 + y_shift) & \
+                                             (self.clear_data['Y'] <= y2 + y_shift)].copy()
+        # #### check test box, comment it ###########
+        # self.test_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+
+        self.train_data = self.clear_data.loc[(self.clear_data['DOY'] != doy) | \
+                                             ((self.clear_data['X'] < x1 + x_shift) | \
+                                              (self.clear_data['X'] > x2 + x_shift) | \
+                                              (self.clear_data['Y'] < y1 + y_shift) | \
+                                              (self.clear_data['Y'] > y2 + y_shift))].copy()
+
+        return self.train_data, self.test_data
+
     def _to_impute(self,):
         self.to_impute = self.cloud_data.copy()
         # display(self.impute_data)
@@ -306,7 +331,7 @@ class HLSDataSet:
         return self.imputed_data
 
     def _inference_data(self,):
-        self.inference_data = pd.concat([self.imputed_data, self.clear_data], axis=0)
+        self.inference_data = pd.concat([self.imputed_data, self.train_data, self.test_data], axis=0)
         # Sort the DataFrame by 'X', 'Y', and 'DOY'
         self.inference_data = self.inference_data.sort_values(by=['Y', 'X', 'DOY', ])
         # test_data = test_data.sort_values(by=['Y', 'X', 'DOY'])
