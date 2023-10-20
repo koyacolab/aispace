@@ -65,6 +65,20 @@ class HLSDataSet:
         self.inference_data = None
 
         self.table_dtype = table_dtype
+        
+    def clip_dataset(self, x1, y1, x2, y2):
+
+        x_shift = self.input_data['X'].min()
+        y_shift = self.input_data['Y'].min()
+        
+        self.input_data = self.input_data.loc[(self.input_data['X'] >= x1 + x_shift) & \
+                                              (self.input_data['X'] <= x2 + x_shift) & \
+                                              (self.input_data['Y'] >= y1 + y_shift) & \
+                                              (self.input_data['Y'] <= y2 + y_shift)].copy()
+                                              
+        self.input_data = self.input_data.reset_index(drop=True)
+        
+        return self.input_data
 
 
     def _image_df(self, input):
@@ -260,11 +274,11 @@ class HLSDataSet:
         # Remove rows containing np.nan in any column
         train_cleaned = self.data.dropna(how='any').copy()
         self.clear_data = train_cleaned.loc[(train_cleaned[f'cloud'] == 0) & \
-                                            # (train_cleaned[f'adj_cloud'] == 0) & \
+                                            (train_cleaned[f'adj_cloud'] == 0) & \
                                             (train_cleaned[f'cloud_shadow'] == 0)].copy()
 
         self.cloud_data = train_cleaned.loc[(train_cleaned[f'cloud'] == 1) | \
-                                            # (train_cleaned[f'adj_cloud'] == 1) | \
+                                            (train_cleaned[f'adj_cloud'] == 1) | \
                                             (train_cleaned[f'cloud_shadow'] == 1)].copy()
 
         self.clear_data = self.clear_data.reset_index(drop=True)
@@ -291,10 +305,10 @@ class HLSDataSet:
         
         return self.data, self.nan_data, self.clear_data, self.cloud_data
 
-    def _set_train_test_data(self, doy, x1, y1, x2, y2):
+    def _set_train_test_data(self, doy, x1, y1, x2, y2, for_show_nan=False):
 
-        x_shift = 1500
-        y_shift = 925
+        x_shift = self.clear_data['X'].min()
+        y_shift = self.clear_data['Y'].min()
         
         self.test_data = self.clear_data.loc[(self.clear_data['DOY'] == doy) & \
                                              (self.clear_data['X'] >= x1 + x_shift) & \
@@ -302,13 +316,39 @@ class HLSDataSet:
                                              (self.clear_data['Y'] >= y1 + y_shift) & \
                                              (self.clear_data['Y'] <= y2 + y_shift)].copy()
         # #### check test box, comment it ###########
-        # self.test_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+        if for_show_nan == True:
+            self.test_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
 
         self.train_data = self.clear_data.loc[(self.clear_data['DOY'] != doy) | \
                                              ((self.clear_data['X'] < x1 + x_shift) | \
                                               (self.clear_data['X'] > x2 + x_shift) | \
                                               (self.clear_data['Y'] < y1 + y_shift) | \
                                               (self.clear_data['Y'] > y2 + y_shift))].copy()
+                                              
+        self.test_data = self.test_data.reset_index(drop=True)              
+        self.train_data = self.train_data.reset_index(drop=True)   
+
+        return self.train_data, self.test_data
+
+    def _set_timeseries_train_test_data(self, doy, x1, y1, x2, y2):
+
+        x_shift = self.clear_data['X'].min()
+        y_shift = self.clear_data['Y'].min()
+        
+        self.test_data = self.clear_data.loc[(self.clear_data['X'] >= x1 + x_shift) & \
+                                             (self.clear_data['X'] <= x2 + x_shift) & \
+                                             (self.clear_data['Y'] >= y1 + y_shift) & \
+                                             (self.clear_data['Y'] <= y2 + y_shift)].copy()
+        # #### check test box, comment it ###########
+        self.test_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+
+        self.train_data = self.clear_data.loc[(self.clear_data['X'] < x1 + x_shift) | \
+                                              (self.clear_data['X'] > x2 + x_shift) | \
+                                              (self.clear_data['Y'] < y1 + y_shift) | \
+                                              (self.clear_data['Y'] > y2 + y_shift)].copy()
+                                              
+        self.test_data = self.test_data.reset_index(drop=True)              
+        self.train_data = self.train_data.reset_index(drop=True)                                         
 
         return self.train_data, self.test_data
 
@@ -330,8 +370,15 @@ class HLSDataSet:
 
         return self.imputed_data
 
-    def _inference_data(self,):
+    def _inference_train_test_data(self,):
         self.inference_data = pd.concat([self.imputed_data, self.train_data, self.test_data], axis=0)
+        # Sort the DataFrame by 'X', 'Y', and 'DOY'
+        self.inference_data = self.inference_data.sort_values(by=['Y', 'X', 'DOY', ])
+        # test_data = test_data.sort_values(by=['Y', 'X', 'DOY'])
+        return self.inference_data
+        
+    def _inference_clear_data(self,):
+        self.inference_data = pd.concat([self.imputed_data, self.clear_data], axis=0)
         # Sort the DataFrame by 'X', 'Y', and 'DOY'
         self.inference_data = self.inference_data.sort_values(by=['Y', 'X', 'DOY', ])
         # test_data = test_data.sort_values(by=['Y', 'X', 'DOY'])
