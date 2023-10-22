@@ -30,6 +30,8 @@ from great_utils import (
     bcolors,
 )
 
+from sophia import SophiaG 
+from optimizer import SophiaSchedule
 
 class GReaT:
     """GReaT Class
@@ -133,6 +135,7 @@ class GReaT:
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
         resume_from_checkpoint: tp.Union[bool, str] = False,
+        optimizer = ''
     ) -> GReaTTrainer:
         """Fine-tune GReaT using tabular data.
 
@@ -176,14 +179,34 @@ class GReaT:
             per_device_train_batch_size=self.batch_size,
             **self.train_hyperparameters,
         )
-        great_trainer = GReaTTrainer(
-            self.model,
-            training_args,
-            train_dataset=great_ds,
-            # eval_dataset=test_great_ds,
-            tokenizer=self.tokenizer,
-            data_collator=GReaTDataCollator(self.tokenizer),
-        )
+
+        if (optimizer == 'Sophia') | (optimizer == 'sophia'):
+        ######### Sophia Scheduler #################################
+            optimizer = SophiaG(self.model.parameters(), lr=2e-4, betas=(0.965, 0.99), rho = 0.01, weight_decay=1e-1)
+            # lr_scheduler = SophiaSchedule(optimizer)
+        ############################################################
+            print(f'Optimiser: Sophia')
+            
+            great_trainer = GReaTTrainer(
+                self.model,
+                training_args,
+                train_dataset=great_ds,
+                # eval_dataset=test_great_ds,
+                tokenizer=self.tokenizer,
+                data_collator=GReaTDataCollator(self.tokenizer),
+                optimizers = (optimizer, None)
+                )
+        else:
+                print(f'Optimizer: default')
+            
+                great_trainer = GReaTTrainer(
+                self.model,
+                training_args,
+                train_dataset=great_ds,
+                # eval_dataset=test_great_ds,
+                tokenizer=self.tokenizer,
+                data_collator=GReaTDataCollator(self.tokenizer),
+                )
 
         # Start training
         logging.info("Start training...")
