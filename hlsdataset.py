@@ -500,7 +500,7 @@ class HLSDataSet:
         image_rgb_list = [image_rgb, image_rgb2]
     
         # Create subplots
-        fig, axes = plt.subplots(1, len(image_rgb_list), figsize=(18, 22))
+        fig, axes = plt.subplots(1, len(image_rgb_list))    # , figsize=(18, 22))
         # Flatten the axes array to simplify indexing
         axes = axes.ravel()
         # print(image_rgb_list[0].shape)
