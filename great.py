@@ -135,7 +135,8 @@ class GReaT:
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
         resume_from_checkpoint: tp.Union[bool, str] = False,
-        optimizer = ''
+        optimizer = '',
+        lr_fit = 2e-5
     ) -> GReaTTrainer:
         """Fine-tune GReaT using tabular data.
 
@@ -182,7 +183,7 @@ class GReaT:
 
         if (optimizer == 'Sophia') | (optimizer == 'sophia'):
         ######### Sophia Scheduler #################################
-            optimizer = SophiaG(self.model.parameters(), lr=2e-4, betas=(0.965, 0.99), rho = 0.01, weight_decay=1e-1)
+            optimizer = SophiaG(self.model.parameters(), lr=lr_fit, betas=(0.965, 0.99), rho = 0.01, weight_decay=1e-1)
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
             print(f'Optimiser: Sophia')
