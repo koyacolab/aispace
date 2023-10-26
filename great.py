@@ -190,7 +190,7 @@ class GReaT:
             if len(data) // self.batch_size < 1:
                 print('len(data) // self.batch_size < 1')
                 fn
-            total_train_steps = (len(data) // self.batch_size) * self.epochs
+            total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
             print('total_train_steps:', total_train_steps, len(data), self.batch_size)
             print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
             
