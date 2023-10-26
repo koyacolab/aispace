@@ -12,6 +12,8 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
 
+from transformers.optimization import get_linear_schedule_with_warmup
+
 from great_dataset import GReaTDataset, GReaTDataCollator
 from great_start import (
     GReaTStart,
@@ -182,13 +184,29 @@ class GReaT:
         )
 
         if (optimizer == 'Sophia') | (optimizer == 'sophia'):
+            print(f'Optimiser: Sophia')
+            print('self.train_hyperparameters:', self.train_hyperparameters)
         ######### Sophia Scheduler #################################
-            optimizer = SophiaG(self.model.parameters(), lr=lr_fit, betas=(0.965, 0.99), rho = 0.01, weight_decay=1e-1)
-        #     lr_scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=self.args.warmup_steps, 
-        # num_training_steps=self.num_training_steps)
+            if len(data) // self.batch_size < 1:
+                print('len(data) // self.batch_size < 1')
+                fn
+            total_train_steps = (len(data) // self.batch_size) * self.epochs
+            print('total_train_steps:', total_train_steps, len(data), self.batch_size)
+            print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
+            
+            optimizer = SophiaG(self.model.parameters(), 
+                                lr=lr_fit, 
+                                betas=(0.965, 0.99), 
+                                rho = 0.01, 
+                                weight_decay=1e-1)
+            lr_scheduler = get_linear_schedule_with_warmup(optimizer, 
+                                                           num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
+                                                           num_training_steps=total_train_steps)
+            # lr_scheduler = get_cosine_schedule_with_warmup
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
-            print(f'Optimiser: Sophia')
+            
+            # fn
             
             great_trainer = GReaTTrainer(
                 self.model,
@@ -197,7 +215,7 @@ class GReaT:
                 # eval_dataset=test_great_ds,
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
-                optimizers = (optimizer, None)
+                optimizers = (optimizer, lr_scheduler)
                 )
         else:
                 print(f'Optimizer: default')
