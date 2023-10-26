@@ -184,6 +184,8 @@ class GReaT:
         if (optimizer == 'Sophia') | (optimizer == 'sophia'):
         ######### Sophia Scheduler #################################
             optimizer = SophiaG(self.model.parameters(), lr=lr_fit, betas=(0.965, 0.99), rho = 0.01, weight_decay=1e-1)
+        #     lr_scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=self.args.warmup_steps, 
+        # num_training_steps=self.num_training_steps)
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
             print(f'Optimiser: Sophia')
