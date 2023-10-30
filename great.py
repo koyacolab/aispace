@@ -12,7 +12,8 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
 
-from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
+from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup 
+from transformers.optimization import get_cosine_with_hard_restarts_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
 
 from great_dataset import GReaTDataset, GReaTDataCollator
 from great_start import (
@@ -199,16 +200,20 @@ class GReaT:
                                 betas=(0.965, 0.99), 
                                 rho = 0.01, 
                                 weight_decay=1e-1)
+            lr_scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, 
+                                                           num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
+                                                           num_training_steps=total_train_steps,
+                                                           num_cycles=5)
             # lr_scheduler = get_linear_schedule_with_warmup(optimizer, 
             #                                                num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
             #                                                num_training_steps=total_train_steps)
             # lr_scheduler = get_constant_schedule_with_warmup(optimizer, 
             #                                                  num_warmup_steps=self.train_hyperparameters['warmup_steps'])
-            lr_scheduler = get_polynomial_decay_schedule_with_warmup(optimizer, 
-                                                                     num_warmup_steps=self.train_hyperparameters['warmup_steps'],
-                                                                     # power=3,
-                                                                     num_training_steps=total_train_steps,
-                                                                     lr_end=lr_fit/100)
+            # lr_scheduler = get_polynomial_decay_schedule_with_warmup(optimizer, 
+            #                                                          num_warmup_steps=self.train_hyperparameters['warmup_steps'],
+            #                                                          # power=3,
+            #                                                          num_training_steps=total_train_steps,
+            #                                                          lr_end=lr_fit/100)
             # lr_scheduler = get_cosine_schedule_with_warmup
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
