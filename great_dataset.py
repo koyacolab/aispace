@@ -33,9 +33,17 @@ class GReaTDataset(Dataset):
         # If int, what else?
         row = self._data.fast_slice(key, 1)
 
+        ####### ORIGINAL SHUFFLING ##############################
         shuffle_idx = list(range(row.num_columns))
         random.shuffle(shuffle_idx)
 
+        # ######## SHUFFLING ONLY IMPUTED COLUMNS #########################################
+        # shuffle_idx = list(range(row.num_columns))
+        # # random.shuffle(shuffle_idx)
+        # # Shuffle the last 4 elements and create a new list
+        # shuffle_idx = shuffle_idx[:-4] + random.shuffle(shuffle_idx[-4:])
+
+        
         shuffled_text = ", ".join(
             [
                 "%s is %s"
