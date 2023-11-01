@@ -47,6 +47,13 @@ class HLSDataSet:
     def __init__(self, table_dtype = 'float16', path='./aispace/data/L8-100x100'):
         self.data_path = path
         self.input_data = pd.read_csv(self.data_path)
+
+        self.input_data.replace(-9999, np.nan, inplace=True)
+        self.input_data['NDVI'] = (self.input_data['B05'] - self.input_data['B04']) / \
+                                  (self.input_data['B05'] + self.input_data['B04']) 
+
+        self.input_data = self.input_data.reset_index(drop=True)
+        
         self.BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
         self.FMSK_LIST = ['cirrus', 'cloud', 'adj_cloud', 'cloud_shadow', 'snow_ice', 'water', 'aero' ]
         self.ANG_LIST = ['SAA', 'SZA', 'VAA', 'VZA',]
@@ -161,6 +168,47 @@ class HLSDataSet:
             rgb = np.dstack((scaled_red, scaled_green, scaled_blue))
     
             return rgb
+
+        def _get_img_ndvi(input, bnd_list=['NDVI']):
+            df = input[bnd_list].copy()
+    
+            # df[df > 0] = 0
+            df[df == -9999] = np.nan
+            # df[df < 0] = 0
+    
+            image = df.to_numpy()
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            # Convert the int16 array to int64
+            # image = image.astype(np.uint64)
+    
+            r_ = (8200, 16000)
+            g_ = (8500, 14000)
+            b_ = (7500, 12000)
+    
+    
+            def ndvi_normalization(band):
+                # Apply your normalization method here
+                # Example: Stretch and scale values to 0-255
+                band = np.ma.array (band, mask=np.isnan(band))
+    
+                ### FOR HLS #################
+                # band = 0.0001 * band
+                # band = np.where(band > 0.3, 0.3, band)
+                min_val = 0.0
+                max_val = 1.0
+    
+                normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+
+                normalized_band[normalized_band == np.nan] = 255
+                return normalized_band
+    
+            # Scale the bands to 8-bit
+            scaled_ndvi = ndvi_normalization(image[0,:,:])
+    
+            return scaled_ndvi
     
         def _get_img(input, bnd_list):
             image = input[bnd_list].to_numpy()  # df[chanel_list]
@@ -181,33 +229,10 @@ class HLSDataSet:
         image_cloud_shadow = _get_img(input, bnd_list=['cloud_shadow'])
         image_snow_ice = _get_img(input, bnd_list=['snow_ice'])
         image_water = _get_img(input, bnd_list=['water'])
+
+        image_ndvi = _get_img_ndvi(input, bnd_list=['NDVI'])
     
-        # image_rgb_list = [image_rgb, image_cirrus,] # image_cloud, image_adjcloud, image_cloud_shadow, image_snow_ice, image_water]
-    
-        # image_nan_list = [image_nan[:,:,0], image_nan[:,:,1], image_nan[:,:,2]]
-        # # Create subplots
-        # fig, axes = plt.subplots(1, len(image_nan_list), figsize=(18, 22))
-        # # Flatten the axes array to simplify indexing
-        # axes = axes.ravel()
-        # # print(image_nan_list[0].shape)
-        # for ii in range(0,len(image_nan_list)):
-        #     axes[ii].imshow(image_nan_list[ii], cmap='gray')  # You can specify a colormap
-        # plt.tight_layout()
-        # plt.show()
-    
-        # # Create subplots
-        # fig, axes = plt.subplots(1, len(image_rgb_list), figsize=(18, 22))
-        # # Flatten the axes array to simplify indexing
-        # axes = axes.ravel()
-        # # print(image_rgb_list[0].shape)
-        # axes[0].imshow(image_rgb_list[0])
-        # # Loop through the images and plot them
-        # for ii in range(1,len(image_rgb_list)):
-        #     axes[ii].imshow(image_rgb_list[ii], cmap='gray')  # You can specify a colormap
-        # plt.tight_layout()
-        # plt.show()
-    
-        image_rgb_list = [image_rgb, image_cirrus, image_cloud, image_adjcloud, image_cloud_shadow, image_snow_ice, image_water]
+        image_rgb_list = [image_rgb, image_ndvi, image_cloud, image_adjcloud, image_cloud_shadow, image_snow_ice, image_water]
     
         # Create subplots
         fig, axes = plt.subplots(1, len(image_rgb_list), figsize=(18, 22))
@@ -242,7 +267,7 @@ class HLSDataSet:
 
         return self.data
 
-    def _set_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'cloud', 'adj_cloud', 'cloud_shadow', 'X', 'Y', 'DOY']):
+    def _set_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'cloud', 'adj_cloud', 'cloud_shadow', 'X', 'Y', 'DOY']):
 
         before_list = self.data.columns.to_list()
         
@@ -257,7 +282,7 @@ class HLSDataSet:
 
     def _nan_9999(self, ):
         # Replace -9999 with np.nan
-        self.data.replace(-9999, np.nan, inplace=True)
+        # self.data.replace(-9999, np.nan, inplace=True)
         # Separate rows with NaN values and without NaN values
         # df_with_nan = 
         # df_without_nan = df[~df.isnull().any(axis=1)]
@@ -286,7 +311,7 @@ class HLSDataSet:
         
         return self.clear_data, self.cloud_data
 
-    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'X', 'Y', 'DOY']):
+    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'X', 'Y', 'DOY']):
 
         before_list = self.data.columns.to_list()
         
@@ -317,7 +342,7 @@ class HLSDataSet:
                                              (self.clear_data['Y'] <= y2 + y_shift)].copy()
         # #### check test box, comment it ###########
         if for_show_nan == True:
-            self.test_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+            self.test_data.loc[:,['B02', 'B03', 'B04', 'B05', 'NDVI']] = np.NaN
 
         self.train_data = self.clear_data.loc[(self.clear_data['DOY'] != doy) | \
                                              ((self.clear_data['X'] < x1 + x_shift) | \
@@ -340,7 +365,7 @@ class HLSDataSet:
                                              (self.clear_data['Y'] >= y1 + y_shift) & \
                                              (self.clear_data['Y'] <= y2 + y_shift)].copy()
         # #### check test box, comment it ###########
-        self.test_data.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+        self.test_data.loc[:,['B02', 'B03', 'B04', 'B05', 'NDVI']] = np.NaN
 
         self.train_data = self.clear_data.loc[(self.clear_data['X'] < x1 + x_shift) | \
                                               (self.clear_data['X'] > x2 + x_shift) | \
@@ -355,7 +380,7 @@ class HLSDataSet:
     def _to_impute(self,):
         self.to_impute = self.cloud_data.copy()
         # display(self.impute_data)
-        self.to_impute.loc[:,['B02', 'B03', 'B04', 'B05']] = np.NaN
+        self.to_impute.loc[:,['B02', 'B03', 'B04', 'B05', 'NDVI']] = np.NaN
 
         self.to_impute = pd.concat([self.to_impute, self.nan_data], axis=0).copy()
         self.imputed_data = self.to_impute
@@ -480,6 +505,47 @@ class HLSDataSet:
             rgb = np.dstack((scaled_red, scaled_green, scaled_blue))
     
             return rgb
+
+        def _get_img_ndvi(input, bnd_list=['NDVI']):
+            df = input[bnd_list].copy()
+    
+            # df[df > 0] = 0
+            df[df == -9999] = np.nan
+            # df[df < 0] = 0
+    
+            image = df.to_numpy()
+    
+            image = image.transpose()
+            image = image.reshape(image.shape[0], box_x_size, box_y_size)
+    
+            # Convert the int16 array to int64
+            # image = image.astype(np.uint64)
+    
+            r_ = (8200, 16000)
+            g_ = (8500, 14000)
+            b_ = (7500, 12000)
+    
+    
+            def ndvi_normalization(band):
+                # Apply your normalization method here
+                # Example: Stretch and scale values to 0-255
+                band = np.ma.array (band, mask=np.isnan(band))
+    
+                ### FOR HLS #################
+                # band = 0.0001 * band
+                # band = np.where(band > 0.3, 0.3, band)
+                min_val = 0.0
+                max_val = 1.0
+    
+                normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+
+                normalized_band[normalized_band == np.nan] = 255
+                return normalized_band
+    
+            # Scale the bands to 8-bit
+            scaled_ndvi = ndvi_normalization(image[0,:,:])
+    
+            return scaled_ndvi
     
         def _get_img(input, bnd_list):
             image = input[bnd_list].to_numpy()  # df[chanel_list]
@@ -493,11 +559,15 @@ class HLSDataSet:
             return image[0,:,:]
     
         # image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
-        image_rgb = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
+        image_rgb   = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
     
-        image_rgb2 = _get_img_rgb(input2, bnd_list=['B02', 'B03', 'B04'])
+        image_rgb2  = _get_img_rgb(input2, bnd_list=['B02', 'B03', 'B04'])
+
+        image_ndvi  = _get_img_ndvi(input1, bnd_list=['NDVI'])
     
-        image_rgb_list = [image_rgb, image_rgb2]
+        image_ndvi2 = _get_img_ndvi(input2, bnd_list=['NDVI'])
+    
+        image_rgb_list = [image_rgb, image_ndvi, image_rgb2, image_ndvi2]
     
         # Create subplots
         fig, axes = plt.subplots(1, len(image_rgb_list))    # , figsize=(18, 22))
@@ -505,8 +575,11 @@ class HLSDataSet:
         axes = axes.ravel()
         # print(image_rgb_list[0].shape)
         axes[0].imshow(image_rgb_list[0])
-        # Loop through the images and plot them
-        for ii in range(1,len(image_rgb_list)):
-            axes[ii].imshow(image_rgb_list[ii], cmap='gray')  # You can specify a colormap
+        axes[1].imshow(image_rgb_list[1], cmap=plt.cm.summer)
+        axes[2].imshow(image_rgb_list[2])
+        axes[3].imshow(image_rgb_list[3], cmap=plt.cm.summer)
+        # # Loop through the images and plot them
+        # for ii in range(1,len(image_rgb_list)):
+        #     axes[ii].imshow(image_rgb_list[ii]) #, cmap='gray')  # You can specify a colormap
         plt.tight_layout()
         plt.show()
