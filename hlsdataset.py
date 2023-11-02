@@ -52,6 +52,13 @@ class HLSDataSet:
         self.input_data['NDVI'] = (self.input_data['B05'] - self.input_data['B04']) / \
                                   (self.input_data['B05'] + self.input_data['B04']) 
 
+
+
+        # Add a new column 'PID' or 'Point_ID' with unique IDs for each point
+        self.input_data['PID'] = self.input_data.groupby(['X', 'Y']).ngroup()
+
+        print('PIDs is ', max(sorted(self.input_data['PID'].unique())))
+
         self.input_data = self.input_data.reset_index(drop=True)
         
         self.BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
@@ -267,7 +274,7 @@ class HLSDataSet:
 
         return self.data
 
-    def _set_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'cloud', 'adj_cloud', 'cloud_shadow', 'X', 'Y', 'DOY']):
+    def _set_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'cloud', 'adj_cloud', 'cloud_shadow', 'X', 'Y', 'DOY', 'PID']):
 
         before_list = self.data.columns.to_list()
         
@@ -311,7 +318,7 @@ class HLSDataSet:
         
         return self.clear_data, self.cloud_data
 
-    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'X', 'Y', 'DOY']):
+    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'X', 'Y', 'DOY', 'PID']):
 
         before_list = self.data.columns.to_list()
         
