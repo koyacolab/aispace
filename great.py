@@ -61,6 +61,7 @@ class GReaT:
     def __init__(
         self,
         llm: str,
+        tokenizer: str,
         experiment_dir: str = "trainer_great",
         epochs: int = 100,
         batch_size: int = 8,
@@ -83,7 +84,8 @@ class GReaT:
         # Load Model and Tokenizer from HuggingFace
         self.efficient_finetuning = efficient_finetuning
         self.llm = llm
-        self.tokenizer = AutoTokenizer.from_pretrained(self.llm)
+        self.tiktok = tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(self.llm) #.to(device)
 
