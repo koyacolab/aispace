@@ -58,6 +58,11 @@ class GReaTDataset(Dataset):
         # fn
         
         tokenized_text = self.tokenizer(shuffled_text, padding=True)
+        
+        # tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
+        # print(f'[{tokenized_text}]')
+        # fn
+        
         return tokenized_text
 
     def __getitems__(self, keys: tp.Union[int, slice, str, list]):
