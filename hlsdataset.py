@@ -568,7 +568,7 @@ class HLSDataSet:
         # image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
         image_rgb   = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
     
-        image_rgb2  = _get_img_rgb(input2, bnd_list=['B02', 'B03', 'B04'])
+        image_rgb2  = _get_img_rgb(input2, bnd_list=['B03', 'B03', 'B03'])
 
         image_band   = _get_img_rgb(input1, bnd_list=['B03', 'B03', 'B03'])
     
@@ -582,7 +582,7 @@ class HLSDataSet:
         image_rgb_list = [image_rgb, image_band, image_rgb2, image_band2]
     
         # Create subplots
-        fig, axes = plt.subplots(1, len(image_rgb_list))    # , figsize=(18, 22))
+        fig, axes = plt.subplots(2, 2)    # (1, len(image_rgb_list))    # , figsize=(18, 22))
         # Flatten the axes array to simplify indexing
         axes = axes.ravel()
         # print(image_rgb_list[0].shape)
