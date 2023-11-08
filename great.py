@@ -422,6 +422,14 @@ class GReaT:
         for prompt in loop_iter:
             start_token = torch.tensor(self.tokenizer(prompt)["input_ids"]).to(device)
 
+            # ################################################################################
+            # print('loop_iter:', loop_iter)
+            # print('prompt:', prompt)
+            # # print('start_token:', start_token)
+            # print('tokenizer.tokenize:', self.tokenizer.tokenize(prompt, padding=True))
+            # # fn 
+            # ###########################################################################
+            
             # Generate tokens
             gen = self.model.generate(
                 input_ids=torch.unsqueeze(start_token, 0),
@@ -430,11 +438,25 @@ class GReaT:
                 temperature=temperature,
                 pad_token_id=50256,
             )
+    
             generated_data.append(torch.squeeze(gen))
+
+            # ###########################################################################
+            # # print('generated_data:', gen)
+            # # text_data = [self.tokenizer.decode(t) for t in generated_data]
+            # tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
+            # print('gen tokens:', tokens)
+            # # fn
+            # ###########################################################################
 
         # Convert Text back to Tabular Data
         decoded_data = _convert_tokens_to_text(generated_data, self.tokenizer)
         df_gen = _convert_text_to_tabular_data(decoded_data, self.columns)
+
+        # ###############################################################################
+        # print('decoded_data:', decoded_data)
+        # # fn
+        # ###########################################################################
 
         return df_gen
 
@@ -484,12 +506,25 @@ class GReaT:
                 org_index = df_curr.index  # Keep index in new DataFrame
                 while not is_complete:
                     num_attrs_missing = pd.isna(df_curr).sum().sum()
-                    # print("Number of missing values: ",  num_attrs_missing)
                     # Generate text promt from current features.
                     starting_prompts = _partial_df_to_promts(df_curr)
+
+                    # ###########################################################
+                    # print("Number of missing values: ",  num_attrs_missing)
+                    # display(df_miss)
+                    # display(df_curr)
+                    # print('starting_prompts:', starting_prompts)
+                    # ###########################################################
+                    
                     df_curr = self.great_sample(
                         starting_prompts, temperature, max_length, device=device
                     )
+
+                    # ###########################################################
+                    # print('predict:') 
+                    # display(df_curr)
+                    # fn
+                    # ###########################################################
 
                     # Convert numerical values to float, flawed numerical values to NaN
                     for i_num_cols in self.num_cols:
@@ -510,6 +545,8 @@ class GReaT:
                         break
                 index += 1
                 pbar.update(1)
+
+        # fn
         return pd.concat(df_list, axis=0)
 
     def save(self, path: str):

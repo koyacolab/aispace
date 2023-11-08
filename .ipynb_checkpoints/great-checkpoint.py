@@ -12,6 +12,9 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
 
+from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup 
+from transformers.optimization import get_cosine_with_hard_restarts_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
+
 from great_dataset import GReaTDataset, GReaTDataCollator
 from great_start import (
     GReaTStart,
@@ -30,6 +33,8 @@ from great_utils import (
     bcolors,
 )
 
+from sophia import SophiaG 
+from optimizer import SophiaSchedule
 
 class GReaT:
     """GReaT Class
@@ -56,10 +61,13 @@ class GReaT:
     def __init__(
         self,
         llm: str,
+        tokenizer: str,
         experiment_dir: str = "trainer_great",
         epochs: int = 100,
         batch_size: int = 8,
         efficient_finetuning: str = "",
+        optimizer = 'sophia',
+        num_cycles=4,
         **train_kwargs,
     ):
         """Initializes GReaT.
@@ -74,13 +82,16 @@ class GReaT:
              see here the full list of all possible values
              https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
         """
-        device = torch.device("cuda")
+        # device = torch.device("cuda")
         # Load Model and Tokenizer from HuggingFace
         self.efficient_finetuning = efficient_finetuning
         self.llm = llm
-        self.tokenizer = AutoTokenizer.from_pretrained(self.llm)
+        self.tiktok = tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.llm).to(device)
+        self.model = AutoModelForCausalLM.from_pretrained(self.llm) #.to(device)
+
+
 
         if self.efficient_finetuning == "lora":
             # Lazy importing
@@ -120,6 +131,10 @@ class GReaT:
         self.batch_size = batch_size
         self.train_hyperparameters = train_kwargs
 
+        self.optimizer = optimizer
+        self.lr_scheduler = self.train_hyperparameters['lr_scheduler_type']
+        self.num_cycles = num_cycles
+
         # Needed for the sampling process
         self.columns = None
         self.num_cols = None
@@ -129,9 +144,13 @@ class GReaT:
     def fit(
         self,
         data: tp.Union[pd.DataFrame, np.ndarray],
+        # test_data: tp.Union[pd.DataFrame, np.ndarray],
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
         resume_from_checkpoint: tp.Union[bool, str] = False,
+        # optimizer = '',
+        # lr_fit = 2e-5, 
+        # LR_SCHEDULER_FIT = 'cosine',
     ) -> GReaTTrainer:
         """Fine-tune GReaT using tabular data.
 
@@ -147,6 +166,7 @@ class GReaT:
         Returns:
             GReaTTrainer used for the fine-tuning process
         """
+        ##### TRAIN DATA #######################################################
         df = _array_to_dataframe(data, columns=column_names)
         self._update_column_information(df)
         self._update_conditional_information(df, conditional_col)
@@ -155,6 +175,16 @@ class GReaT:
         logging.info("Convert data into HuggingFace dataset object...")
         great_ds = GReaTDataset.from_pandas(df)
         great_ds.set_tokenizer(self.tokenizer)
+        ########################################################################
+        # ##### TEST DATA #######################################################
+        # test_df = _array_to_dataframe(test_data, columns=column_names)
+        # # self._update_column_information(df)
+        # # self._update_conditional_information(df, conditional_col)
+        # # Convert DataFrame into HuggingFace dataset object
+        # logging.info("Convert data into HuggingFace dataset object...")
+        # test_great_ds = GReaTDataset.from_pandas(test_df, split="test")
+        # test_great_ds.set_tokenizer(self.tokenizer)
+        # ########################################################################
 
         # Set training hyperparameters
         logging.info("Create GReaT Trainer...")
@@ -164,13 +194,76 @@ class GReaT:
             per_device_train_batch_size=self.batch_size,
             **self.train_hyperparameters,
         )
-        great_trainer = GReaTTrainer(
-            self.model,
-            training_args,
-            train_dataset=great_ds,
-            tokenizer=self.tokenizer,
-            data_collator=GReaTDataCollator(self.tokenizer),
-        )
+
+        # optimizer = 'sophia'
+        if (self.optimizer == 'Sophia') | (self.optimizer == 'sophia'):
+            print(f'Optimiser: Sophia')
+            print('self.train_hyperparameters:', self.train_hyperparameters)
+        ######### Sophia Scheduler #################################
+            if len(data) // self.batch_size < 1:
+                print('len(data) // self.batch_size < 1')
+                fn
+            #### CALCULATE total_train_steps #########################################
+            total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
+            print('total_train_steps calculated:', total_train_steps, len(data), self.batch_size)
+            print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
+
+            #### SET 2nd ORDER OPTIMIZER ##############################
+            self.optimizer = SophiaG(self.model.parameters(), 
+                                    lr=self.train_hyperparameters['learning_rate'], 
+                                    betas=(0.965, 0.99), 
+                                    rho = 0.01, 
+                                    weight_decay=1e-1)
+
+            #### SET lr_scheduler_type ################################
+            if self.train_hyperparameters['lr_scheduler_type'] == 'cosine':
+                print('lr_scheduler_type: cosine')
+                self.lr_scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(self.optimizer, 
+                                                               num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
+                                                               num_training_steps=total_train_steps,
+                                                               num_cycles=self.num_cycles)
+            elif self.train_hyperparameters['lr_scheduler_type'] == 'linear':
+                print('lr_scheduler_type: linear')
+                self.lr_scheduler = get_linear_schedule_with_warmup(self.optimizer, 
+                                                               num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
+                                                               num_training_steps=total_train_steps)
+            elif self.train_hyperparameters['lr_scheduler_type'] == 'constant':
+                print('lr_scheduler_type: constant')
+                self.lr_scheduler = get_constant_schedule_with_warmup(self.optimizer, 
+                                                                 num_warmup_steps=self.train_hyperparameters['warmup_steps'])
+            elif self.train_hyperparameters['lr_scheduler_type'] == 'polynomial':
+                print('lr_scheduler_type: polynomial')
+                self.lr_scheduler = get_polynomial_decay_schedule_with_warmup(self.optimizer, 
+                                                                         num_warmup_steps=self.train_hyperparameters['warmup_steps'],
+                                                                         # power=-1,
+                                                                         num_training_steps=total_train_steps,
+                                                                         lr_end=self.train_hyperparameters['learning_rate']/1000)
+            # lr_scheduler = get_cosine_schedule_with_warmup
+            # lr_scheduler = SophiaSchedule(optimizer)
+        ############################################################
+            
+            # fn
+            
+            great_trainer = GReaTTrainer(
+                self.model,
+                training_args,
+                train_dataset=great_ds,
+                # eval_dataset=test_great_ds,
+                tokenizer=self.tokenizer,
+                data_collator=GReaTDataCollator(self.tokenizer),
+                optimizers = (self.optimizer, self.lr_scheduler)
+                )
+        else:
+                print(f'Optimizer: default')
+            
+                great_trainer = GReaTTrainer(
+                self.model,
+                training_args,
+                train_dataset=great_ds,
+                # eval_dataset=test_great_ds,
+                tokenizer=self.tokenizer,
+                data_collator=GReaTDataCollator(self.tokenizer),
+                )
 
         # Start training
         logging.info("Start training...")
@@ -329,6 +422,14 @@ class GReaT:
         for prompt in loop_iter:
             start_token = torch.tensor(self.tokenizer(prompt)["input_ids"]).to(device)
 
+            # ################################################################################
+            # print('loop_iter:', loop_iter)
+            # print('prompt:', prompt)
+            # # print('start_token:', start_token)
+            # print('tokenizer.tokenize:', self.tokenizer.tokenize(prompt, padding=True))
+            # # fn 
+            # ###########################################################################
+            
             # Generate tokens
             gen = self.model.generate(
                 input_ids=torch.unsqueeze(start_token, 0),
@@ -337,11 +438,25 @@ class GReaT:
                 temperature=temperature,
                 pad_token_id=50256,
             )
+    
             generated_data.append(torch.squeeze(gen))
+
+            # ###########################################################################
+            # # print('generated_data:', gen)
+            # # text_data = [self.tokenizer.decode(t) for t in generated_data]
+            # tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
+            # print('gen tokens:', tokens)
+            # # fn
+            # ###########################################################################
 
         # Convert Text back to Tabular Data
         decoded_data = _convert_tokens_to_text(generated_data, self.tokenizer)
         df_gen = _convert_text_to_tabular_data(decoded_data, self.columns)
+
+        # ###############################################################################
+        # print('decoded_data:', decoded_data)
+        # # fn
+        # ###########################################################################
 
         return df_gen
 
@@ -391,12 +506,25 @@ class GReaT:
                 org_index = df_curr.index  # Keep index in new DataFrame
                 while not is_complete:
                     num_attrs_missing = pd.isna(df_curr).sum().sum()
-                    # print("Number of missing values: ",  num_attrs_missing)
                     # Generate text promt from current features.
                     starting_prompts = _partial_df_to_promts(df_curr)
+
+                    # ###########################################################
+                    # print("Number of missing values: ",  num_attrs_missing)
+                    # display(df_miss)
+                    # display(df_curr)
+                    # print('starting_prompts:', starting_prompts)
+                    # ###########################################################
+                    
                     df_curr = self.great_sample(
                         starting_prompts, temperature, max_length, device=device
                     )
+
+                    # ###########################################################
+                    # print('predict:') 
+                    # display(df_curr)
+                    # fn
+                    # ###########################################################
 
                     # Convert numerical values to float, flawed numerical values to NaN
                     for i_num_cols in self.num_cols:
@@ -417,6 +545,8 @@ class GReaT:
                         break
                 index += 1
                 pbar.update(1)
+
+        # fn
         return pd.concat(df_list, axis=0)
 
     def save(self, path: str):

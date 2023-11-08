@@ -568,15 +568,15 @@ class HLSDataSet:
         # image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
         image_rgb   = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
     
-        image_rgb2  = _get_img_rgb(input2, bnd_list=['B03', 'B03', 'B03'])
+        image_rgb2  = _get_img_rgb(input2, bnd_list=['B02', 'B03', 'B04'])
 
-        image_band   = _get_img_rgb(input1, bnd_list=['B03', 'B03', 'B03'])
+        image_band   = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
     
-        image_band2  = _get_img_rgb(input2, bnd_list=['B03', 'B03', 'B03'])
+        image_band2  = _get_img_rgb(input2, bnd_list=['B02', 'B03', 'B04'])
 
-        image_ndvi  = _get_img_ndvi(input1, bnd_list=['NDVI'])
+        # image_ndvi  = _get_img_ndvi(input1, bnd_list=['NDVI'])
     
-        image_ndvi2 = _get_img_ndvi(input2, bnd_list=['NDVI'])
+        # image_ndvi2 = _get_img_ndvi(input2, bnd_list=['NDVI'])
     
         # image_rgb_list = [image_rgb, image_ndvi, image_rgb2, image_ndvi2]
         image_rgb_list = [image_rgb, image_band, image_rgb2, image_band2]
