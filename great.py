@@ -66,6 +66,8 @@ class GReaT:
         epochs: int = 100,
         batch_size: int = 8,
         efficient_finetuning: str = "",
+        optimizer = 'sophia',
+        num_cycles=4,
         **train_kwargs,
     ):
         """Initializes GReaT.
@@ -88,6 +90,8 @@ class GReaT:
         self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(self.llm) #.to(device)
+
+
 
         if self.efficient_finetuning == "lora":
             # Lazy importing
@@ -127,6 +131,10 @@ class GReaT:
         self.batch_size = batch_size
         self.train_hyperparameters = train_kwargs
 
+        self.optimizer = optimizer
+        self.lr_scheduler = self.train_hyperparameters['lr_scheduler_type']
+        self.num_cycles = num_cycles
+
         # Needed for the sampling process
         self.columns = None
         self.num_cols = None
@@ -140,8 +148,9 @@ class GReaT:
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
         resume_from_checkpoint: tp.Union[bool, str] = False,
-        optimizer = '',
-        lr_fit = 2e-5
+        # optimizer = '',
+        # lr_fit = 2e-5, 
+        # LR_SCHEDULER_FIT = 'cosine',
     ) -> GReaTTrainer:
         """Fine-tune GReaT using tabular data.
 
@@ -186,36 +195,49 @@ class GReaT:
             **self.train_hyperparameters,
         )
 
-        if (optimizer == 'Sophia') | (optimizer == 'sophia'):
+        # optimizer = 'sophia'
+        if (self.optimizer == 'Sophia') | (self.optimizer == 'sophia'):
             print(f'Optimiser: Sophia')
             print('self.train_hyperparameters:', self.train_hyperparameters)
         ######### Sophia Scheduler #################################
             if len(data) // self.batch_size < 1:
                 print('len(data) // self.batch_size < 1')
                 fn
+            #### CALCULATE total_train_steps #########################################
             total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
-            print('total_train_steps:', total_train_steps, len(data), self.batch_size)
+            print('total_train_steps calculated:', total_train_steps, len(data), self.batch_size)
             print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
-            
-            optimizer = SophiaG(self.model.parameters(), 
-                                lr=lr_fit, 
-                                betas=(0.965, 0.99), 
-                                rho = 0.01, 
-                                weight_decay=1e-1)
-            lr_scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, 
-                                                           num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
-                                                           num_training_steps=total_train_steps,
-                                                           num_cycles=5)
-            # lr_scheduler = get_linear_schedule_with_warmup(optimizer, 
-            #                                                num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
-            #                                                num_training_steps=total_train_steps)
-            # lr_scheduler = get_constant_schedule_with_warmup(optimizer, 
-            #                                                  num_warmup_steps=self.train_hyperparameters['warmup_steps'])
-            # lr_scheduler = get_polynomial_decay_schedule_with_warmup(optimizer, 
-            #                                                          num_warmup_steps=self.train_hyperparameters['warmup_steps'],
-            #                                                          # power=-1,
-            #                                                          num_training_steps=total_train_steps,
-            #                                                          lr_end=lr_fit/1000)
+
+            #### SET 2nd ORDER OPTIMIZER ##############################
+            self.optimizer = SophiaG(self.model.parameters(), 
+                                    lr=self.train_hyperparameters['learning_rate'], 
+                                    betas=(0.965, 0.99), 
+                                    rho = 0.01, 
+                                    weight_decay=1e-1)
+
+            #### SET lr_scheduler_type ################################
+            if self.train_hyperparameters['lr_scheduler_type'] == 'cosine':
+                print('lr_scheduler_type: cosine')
+                self.lr_scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(self.optimizer, 
+                                                               num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
+                                                               num_training_steps=total_train_steps,
+                                                               num_cycles=self.num_cycles)
+            elif self.train_hyperparameters['lr_scheduler_type'] == 'linear':
+                print('lr_scheduler_type: linear')
+                self.lr_scheduler = get_linear_schedule_with_warmup(self.optimizer, 
+                                                               num_warmup_steps=self.train_hyperparameters['warmup_steps'], 
+                                                               num_training_steps=total_train_steps)
+            elif self.train_hyperparameters['lr_scheduler_type'] == 'constant':
+                print('lr_scheduler_type: constant')
+                self.lr_scheduler = get_constant_schedule_with_warmup(self.optimizer, 
+                                                                 num_warmup_steps=self.train_hyperparameters['warmup_steps'])
+            elif self.train_hyperparameters['lr_scheduler_type'] == 'polynomial':
+                print('lr_scheduler_type: polynomial')
+                self.lr_scheduler = get_polynomial_decay_schedule_with_warmup(self.optimizer, 
+                                                                         num_warmup_steps=self.train_hyperparameters['warmup_steps'],
+                                                                         # power=-1,
+                                                                         num_training_steps=total_train_steps,
+                                                                         lr_end=self.train_hyperparameters['learning_rate']/1000)
             # lr_scheduler = get_cosine_schedule_with_warmup
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
@@ -229,7 +251,7 @@ class GReaT:
                 # eval_dataset=test_great_ds,
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
-                optimizers = (optimizer, lr_scheduler)
+                optimizers = (self.optimizer, self.lr_scheduler)
                 )
         else:
                 print(f'Optimizer: default')
