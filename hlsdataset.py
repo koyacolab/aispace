@@ -322,10 +322,10 @@ class HLSDataSet:
 
         before_list = self.data.columns.to_list()
         
-        self.data = self.data[final_columns_list].astype(self.table_dtype)
-        self.nan_data = self.nan_data[final_columns_list].astype(self.table_dtype)
-        self.clear_data = self.clear_data[final_columns_list].astype(self.table_dtype)
-        self.cloud_data = self.cloud_data[final_columns_list].astype(self.table_dtype)
+        self.data = self.data[final_columns_list].astype(self.table_dtype, errors='ignore')
+        self.nan_data = self.nan_data[final_columns_list].astype(self.table_dtype, errors='ignore')
+        self.clear_data = self.clear_data[final_columns_list].astype(self.table_dtype, errors='ignore')
+        self.cloud_data = self.cloud_data[final_columns_list].astype(self.table_dtype, errors='ignore')
         # train_data.columns = final_columns_list
         
         print(f'Change columns list: {before_list}->{self.data.columns.to_list()}')

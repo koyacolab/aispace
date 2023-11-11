@@ -54,14 +54,14 @@ class GReaTDataset(Dataset):
         # #### check shuffled_text ###########
         # print(f'[{shuffled_text}]')
         # ###################################
-        # print(f'key, {type(key)}, {key}')
+        # print(key, {type(key)}, {key}')
         # fn
         
         tokenized_text = self.tokenizer(shuffled_text, padding=True)
         
         # tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
         # print(f'[{tokenized_text}]')
-        # fn
+        # # fn
         
         return tokenized_text
 

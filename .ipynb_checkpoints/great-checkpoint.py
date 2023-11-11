@@ -423,10 +423,10 @@ class GReaT:
             start_token = torch.tensor(self.tokenizer(prompt)["input_ids"]).to(device)
 
             # ################################################################################
-            # print('loop_iter:', loop_iter)
-            # print('prompt:', prompt)
-            # # print('start_token:', start_token)
-            # print('tokenizer.tokenize:', self.tokenizer.tokenize(prompt, padding=True))
+            print('loop_iter:', loop_iter)
+            print('prompt:', prompt)
+            # print('start_token:', start_token)
+            print('tokenizer.tokenize:', self.tokenizer.tokenize(prompt, padding=True))
             # # fn 
             # ###########################################################################
             
@@ -441,20 +441,31 @@ class GReaT:
     
             generated_data.append(torch.squeeze(gen))
 
-            # ###########################################################################
-            # # print('generated_data:', gen)
-            # # text_data = [self.tokenizer.decode(t) for t in generated_data]
-            # tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
-            # print('gen tokens:', tokens)
-            # # fn
-            # ###########################################################################
+            ###########################################################################
+            # print('generated_data:', gen)
+            # text_data = [self.tokenizer.decode(t) for t in generated_data]
+            tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
+            print('gen tokens:', len(tokens[0]), tokens)
+
+            # Convert tokens to text
+            text_data = [self.tokenizer.decode(t) for t in gen]
+        
+            # Clean text
+            text_data = [d.replace("<|endoftext|>", "") for d in text_data]
+            text_data = [d.replace("\n", " ") for d in text_data]
+            text_data = [d.replace("\r", "") for d in text_data]
+            print('text_data:', text_data)
+            
+            # fn
+            ###########################################################################
 
         # Convert Text back to Tabular Data
         decoded_data = _convert_tokens_to_text(generated_data, self.tokenizer)
         df_gen = _convert_text_to_tabular_data(decoded_data, self.columns)
 
         # ###############################################################################
-        # print('decoded_data:', decoded_data)
+        print('decoded_data:', decoded_data)
+        print('------------------------------------')
         # # fn
         # ###########################################################################
 

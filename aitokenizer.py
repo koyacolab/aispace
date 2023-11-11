@@ -118,7 +118,7 @@ class PreTrainTokenizer(TrainCorpus):
     def _train(self, special_tokens=["DOY", "PID"]):
         self.tokenizer = self.old_tokenizer.train_new_from_iterator(self._get_training_corpus(),
                                                                     52000,
-                                                                    new_special_tokens=['is']+special_tokens,)
+                                                                    new_special_tokens=special_tokens) #+['is', ','],)
         
         return self.tokenizer
 
