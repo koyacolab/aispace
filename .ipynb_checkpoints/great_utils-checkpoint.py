@@ -117,6 +117,15 @@ def _convert_text_to_tabular_data(
 def _encode_row_partial(row, shuffle=True):
     """Function that takes a row and converts all columns into the text representation that are not NaN."""
     num_cols = len(row.index)
+    
+    # ###############################################
+    # row = row.astype(int, errors='ignore')
+    # print('_encode_row_partial:', type(row))
+    # display(row)
+    # display(row.astype(int, errors='ignore'))
+    # fn
+    # ###############################################
+    
     if not shuffle:
         idx_list = np.arange(num_cols)
     else:
@@ -151,9 +160,20 @@ def _partial_df_to_promts(partial_df: pd.DataFrame):
     Returns:
         List of strings with the starting prompt for each sample.
     """
+    # #######################################
+    # print('partial_df:')
+    # display(partial_df)
+    # #######################################
+    
     encoder = lambda x: _encode_row_partial(x, True)
     res_encode = list(partial_df.apply(encoder, axis=1))
     res_first = list(partial_df.apply(_get_random_missing, axis=1))
+
+    # #########################################################
+    # print('_partial_df_to_promts:', res_encode, res_first)
+    # fn
+    # #########################################################
+    
 
     # Edge case: all values are missing, will return empty string which is not supported.
     # Use first attribute as starting prompt.

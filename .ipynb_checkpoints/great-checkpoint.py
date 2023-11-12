@@ -64,6 +64,7 @@ class GReaT:
         tokenizer: str,
         experiment_dir: str = "trainer_great",
         epochs: int = 100,
+        max_steps: int = -1,
         batch_size: int = 8,
         efficient_finetuning: str = "",
         optimizer = 'sophia',
@@ -112,7 +113,7 @@ class GReaT:
                 r=16,  # only training 0.16% of the parameters of the model
                 lora_alpha=32,
                 target_modules=[
-                    "c_attn", "c_proj", "c_fc"
+                    "c_attn", #"c_proj", "c_fc"
                 ],  # this is specific for gpt2 model, to be adapted
                 fan_in_fan_out=True,
                 lora_dropout=0.05,
@@ -128,6 +129,7 @@ class GReaT:
         # Set the training hyperparameters
         self.experiment_dir = experiment_dir
         self.epochs = epochs
+        self.max_steps = max_steps
         self.batch_size = batch_size
         self.train_hyperparameters = train_kwargs
 
@@ -191,6 +193,7 @@ class GReaT:
         training_args = TrainingArguments(
             self.experiment_dir,
             num_train_epochs=self.epochs,
+            max_steps = self.max_steps,
             per_device_train_batch_size=self.batch_size,
             **self.train_hyperparameters,
         )
@@ -204,7 +207,12 @@ class GReaT:
                 print('len(data) // self.batch_size < 1')
                 fn
             #### CALCULATE total_train_steps #########################################
-            total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
+            total_train_steps = 0
+            if self.max_steps < 0:
+                total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
+            else:
+                total_train_steps = self.max_steps
+                
             print('total_train_steps calculated:', total_train_steps, len(data), self.batch_size)
             print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
 
@@ -422,13 +430,13 @@ class GReaT:
         for prompt in loop_iter:
             start_token = torch.tensor(self.tokenizer(prompt)["input_ids"]).to(device)
 
-            # ################################################################################
-            print('loop_iter:', loop_iter)
-            print('prompt:', prompt)
-            # print('start_token:', start_token)
-            print('tokenizer.tokenize:', self.tokenizer.tokenize(prompt, padding=True))
-            # # fn 
-            # ###########################################################################
+            # # ################################################################################
+            # print('loop_iter:', loop_iter)
+            # print('prompt:', prompt)
+            # # print('start_token:', start_token)
+            # print('tokenizer.tokenize:', self.tokenizer.tokenize(prompt, padding=True))
+            # # # fn 
+            # # ###########################################################################
             
             # Generate tokens
             gen = self.model.generate(
@@ -441,33 +449,32 @@ class GReaT:
     
             generated_data.append(torch.squeeze(gen))
 
-            ###########################################################################
-            # print('generated_data:', gen)
-            # text_data = [self.tokenizer.decode(t) for t in generated_data]
-            tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
-            print('gen tokens:', len(tokens[0]), tokens)
+            # ###########################################################################
+            # # print('generated_data:', gen)
+            # # text_data = [self.tokenizer.decode(t) for t in generated_data]
+            # tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
+            # print('gen tokens:', len(tokens[0]), tokens)
 
-            # Convert tokens to text
-            text_data = [self.tokenizer.decode(t) for t in gen]
+            # # Convert tokens to text
+            # text_data = [self.tokenizer.decode(t) for t in gen]
         
-            # Clean text
-            text_data = [d.replace("<|endoftext|>", "") for d in text_data]
-            text_data = [d.replace("\n", " ") for d in text_data]
-            text_data = [d.replace("\r", "") for d in text_data]
-            print('text_data:', text_data)
-            
-            # fn
-            ###########################################################################
+            # # Clean text
+            # text_data = [d.replace("<|endoftext|>", "") for d in text_data]
+            # text_data = [d.replace("\n", " ") for d in text_data]
+            # text_data = [d.replace("\r", "") for d in text_data]
+            # print('text_data:', text_data)
+            # # fn
+            # ###########################################################################
 
         # Convert Text back to Tabular Data
         decoded_data = _convert_tokens_to_text(generated_data, self.tokenizer)
         df_gen = _convert_text_to_tabular_data(decoded_data, self.columns)
 
-        # ###############################################################################
-        print('decoded_data:', decoded_data)
-        print('------------------------------------')
-        # # fn
-        # ###########################################################################
+        # # ###############################################################################
+        # print('decoded_data:', decoded_data)
+        # print('------------------------------------')
+        # # # fn
+        # # ###########################################################################
 
         return df_gen
 
