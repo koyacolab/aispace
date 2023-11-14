@@ -582,7 +582,7 @@ class HLSDataSet:
         image_rgb_list = [image_rgb, image_band, image_rgb2, image_band2]
     
         # Create subplots
-        fig, axes = plt.subplots(2, 2)    # (1, len(image_rgb_list))    # , figsize=(18, 22))
+        fig, axes = plt.subplots(2, 2)  #, figsize=(9, 11))    # (1, len(image_rgb_list))    # , figsize=(18, 22))
         # Flatten the axes array to simplify indexing
         axes = axes.ravel()
         # print(image_rgb_list[0].shape)
