@@ -119,10 +119,10 @@ def _encode_row_partial(row, shuffle=True):
     num_cols = len(row.index)
     
     # ###############################################
-    # row = row.astype(int, errors='ignore')
+    row = row.astype('Int64', errors='ignore')
     # print('_encode_row_partial:', type(row))
     # display(row)
-    # display(row.astype(int, errors='ignore'))
+    # # display(row.astype(int, errors='ignore'))
     # fn
     # ###############################################
     
