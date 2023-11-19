@@ -65,8 +65,6 @@ class HLSDataSet:
         self.FMSK_LIST = ['cirrus', 'cloud', 'adj_cloud', 'cloud_shadow', 'snow_ice', 'water', 'aero' ]
         self.ANG_LIST = ['SAA', 'SZA', 'VAA', 'VZA',]
 
-        self.REFLECT = False
-
         self.data = None
         self.nan_data = None
         self.clear_data = None
@@ -97,22 +95,9 @@ class HLSDataSet:
         return self.input_data
 
 
-    def _REFLECTANCE(self, bnd_list=['B04', 'B03', 'B02'], round = 4):
-
-        self.REFLECT = True
-
-        min_val = -0.063
-        max_val = 0.3
-
-        for i_band in bnd_list:
-            self.input_data[i_band] = 0.0001 * self.input_data[i_band]
-            # Set all elements in column 'B0' greater than 0.3 to 0.3
-            self.input_data[i_band] = self.input_data[i_band].apply(lambda x: min(x, max_val))
-            self.input_data[i_band] = (self.input_data[i_band] - min_val) / (max_val - min_val) 
-            self.input_data[i_band] = self.input_data[i_band].round(round)
-
-
     def _image_df(self, input):
+
+        # input = self.input_data
 
         input = input
         
@@ -154,29 +139,38 @@ class HLSDataSet:
             # Convert the int16 array to int64
             # image = image.astype(np.uint64)
     
-            def generalized_normalization(band):
+            r_ = (8200, 16000)
+            g_ = (8500, 14000)
+            b_ = (7500, 12000)
+    
+    
+            def generalized_normalization(band, rgb):
                 # Apply your normalization method here
                 # Example: Stretch and scale values to 0-255
                 band = np.ma.array (band, mask=np.isnan(band))
-
-                if self.REFLECT == False:
-                    ### FOR HLS #################
-                    band = 0.0001 * band
-                    band = np.where(band > 0.3, 0.3, band)
-                    min_val = -0.063
-                    max_val = 0.3
-                    
-                    normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
-                else:                
-                    normalized_band = band
-
+    
+                ### FOR HLS #################
+                band = 0.0001 * band
+                band = np.where(band > 0.3, 0.3, band)
+                min_val = -0.063
+                max_val = 0.3
+    
+                # min_val = np.min(band)
+                # max_val = np.max(band)
+                # min_val = rgb[0]
+                # max_val = rgb[1]
+                # print(f'gn:{min_val}, {max_val}')
+                normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+                #
+                # Replace elements greater than 2000 with 1
+                # print('band:', band.min(), band.max())
                 normalized_band[normalized_band == np.nan] = 255
                 return normalized_band
     
             # Scale the bands to 8-bit
-            scaled_red = generalized_normalization(image[2,:,:])
-            scaled_green = generalized_normalization(image[1,:,:])
-            scaled_blue = generalized_normalization(image[0,:,:])
+            scaled_red = generalized_normalization(image[2,:,:], r_)
+            scaled_green = generalized_normalization(image[1,:,:], g_)
+            scaled_blue = generalized_normalization(image[0,:,:], b_)
     
             rgb = np.dstack((scaled_red, scaled_green, scaled_blue))
     
@@ -208,6 +202,8 @@ class HLSDataSet:
                 band = np.ma.array (band, mask=np.isnan(band))
     
                 ### FOR HLS #################
+                # band = 0.0001 * band
+                # band = np.where(band > 0.3, 0.3, band)
                 min_val = 0.0
                 max_val = 1.0
     
@@ -489,22 +485,19 @@ class HLSDataSet:
                 # Apply your normalization method here
                 # Example: Stretch and scale values to 0-255
                 band = np.ma.array (band, mask=np.isnan(band))
-
-                if self.REFLECT == False:
+    
                 ### FOR HLS #################
-                    band = 0.0001 * band
-                    band = np.where(band > 0.3, 0.3, band)
-                    min_val = -0.063
-                    max_val = 0.3
-        
-                    # min_val = np.min(band)
-                    # max_val = np.max(band)
-                    # min_val = rgb[0]
-                    # max_val = rgb[1]
-                    # print(f'gn:{min_val}, {max_val}')
-                    normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
-                else:
-                    normalized_band = band
+                band = 0.0001 * band
+                band = np.where(band > 0.3, 0.3, band)
+                min_val = -0.063
+                max_val = 0.3
+    
+                # min_val = np.min(band)
+                # max_val = np.max(band)
+                # min_val = rgb[0]
+                # max_val = rgb[1]
+                # print(f'gn:{min_val}, {max_val}')
+                normalized_band = ((band - min_val) / (max_val - min_val) * 255).astype(np.uint8)
                 #
                 # Replace elements greater than 2000 with 1
                 # print('band:', band.min(), band.max())
@@ -571,54 +564,6 @@ class HLSDataSet:
             image = image.astype(np.uint64)
     
             return image[0,:,:]
-
-        def _get_hist(input, bnd_list):
-            image = input[bnd_list].to_numpy()  # df[chanel_list]
-    
-            image = image.transpose()
-            image = image.reshape(image.shape[0], box_x_size, box_y_size)
-                     
-            image_plt = image  # (image * 255).astype(np.uint8)
-
-            print('image:', image.shape, image)
-            # fn
-
-            ############################################
-            # Check for NaN values
-            nan_mask = np.isnan(image)
-            # Calculate the average of non-NaN values
-            average_value = np.nanmax(image)        
-            # Replace NaN values with the average
-            image_plt = image.copy()
-            image_plt[nan_mask] = average_value
-            # fn
-
-            ####################################################
-            # Replace NaN values with the mean of non-NaN values
-            # mean_value = np.nanmean(image)
-            # image[np.isnan(image)] = mean_value     
-            # Normalize the array using z-score normalization
-            hist = image # (image - np.mean(image)) / np.std(image)
-
-    
-            # Convert the int16 array to int64
-            # image_plt = image_plt.astype(np.uint64)
-    
-            
-            fig, ax = plt.subplots(ncols=2, figsize=(12, 4))
-            ax[0].imshow(image_plt[0,:,:], cmap=plt.cm.gray)
-            ax[0].axis("off")
-            ax[0].set_title("Rendering of the image")
-            ax[1].hist(hist[0,:,:].ravel(), bins=256)
-            ax[1].set_xlabel("Pixel value")
-            ax[1].set_ylabel("Count of pixels")
-            ax[1].set_title("Distribution of the pixel values")
-            _ = fig.suptitle("Original image of a hls dataset")
-
-            return image[0,:,:]
-        # fn
-
-        hist = _get_hist(input2, bnd_list=['B03'])
     
         # image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
         image_rgb   = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
