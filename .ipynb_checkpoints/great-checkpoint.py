@@ -245,7 +245,7 @@ class GReaT:
                                                                          num_warmup_steps=self.train_hyperparameters['warmup_steps'],
                                                                          # power=-1,
                                                                          num_training_steps=total_train_steps,
-                                                                         lr_end=self.train_hyperparameters['learning_rate']/1000)
+                                                                         lr_end=self.train_hyperparameters['learning_rate']/100)
             # lr_scheduler = get_cosine_schedule_with_warmup
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
