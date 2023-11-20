@@ -97,7 +97,7 @@ class HLSDataSet:
         return self.input_data
 
 
-    def _REFLECTANCE(self, bnd_list=['B04', 'B03', 'B02'], round = 4):
+    def _REFLECTANCE(self, bnd_list=['B04', 'B03', 'B02'], round = 4, data_type='float'):
 
         self.REFLECT = True
 
@@ -110,6 +110,9 @@ class HLSDataSet:
             self.input_data[i_band] = self.input_data[i_band].apply(lambda x: min(x, max_val))
             self.input_data[i_band] = (self.input_data[i_band] - min_val) / (max_val - min_val) 
             self.input_data[i_band] = self.input_data[i_band].round(round)
+            if data_type == 'int':
+                self.input_data[i_band] = self.input_data[i_band] * 10**round
+                self.input_data[i_band] = self.input_data[i_band].astype(int)
 
 
     def _image_df(self, input):
@@ -170,7 +173,7 @@ class HLSDataSet:
                 else:                
                     normalized_band = band
 
-                normalized_band[normalized_band == np.nan] = 255
+                normalized_band[normalized_band == np.nan] = 0.0 #255
                 return normalized_band
     
             # Scale the bands to 8-bit

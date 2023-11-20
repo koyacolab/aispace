@@ -36,6 +36,8 @@ from great_utils import (
 from sophia import SophiaG 
 from optimizer import SophiaSchedule
 
+import evaluate
+
 class GReaT:
     """GReaT Class
 
@@ -251,12 +253,34 @@ class GReaT:
         ############################################################
             
             # fn
+
+            # Setup evaluation 
+            metric = evaluate.load("accuracy")
+
+            def compute_metrics(p: EvalPrediction):
+                # print('eval_pred:', p)
+                logits, labels = p
+                # print('eval_logits:', len(logits), logits)
+                # print('eval_labels:', len(labels), labels)
+                predictions = np.argmax(logits, axis=-1)
+                # print('eval_predictions:', len(predictions), predictions)
+                metrics = metric.compute(predictions=predictions[0], references=labels[0])
+                # print('eval_metrics:', len(metrics), metrics)
+
+                print(self.tokenizer.decode(predictions[0]))
+                print(self.tokenizer.decode(labels[0]))
+                print('...........................................................................................')
+                # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
+                # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
+                # fn
+                # predictions = np.argmax(predictions, axis=1)
+                return metric.compute(predictions=predictions[0], references=labels[0])
             
             great_trainer = GReaTTrainer(
                 self.model,
                 training_args,
                 train_dataset=great_ds,
-                # eval_dataset=test_great_ds,
+                # eval_dataset={'validation' : test_great_ds},
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 optimizers = (self.optimizer, self.lr_scheduler)
