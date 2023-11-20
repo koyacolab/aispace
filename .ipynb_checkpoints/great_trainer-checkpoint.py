@@ -71,8 +71,8 @@ class GReaTTrainer(Trainer):
         )
 
 ###################################################################################################
-    def __12prediction_step(
-        # self,
+    def prediction_step(
+        self,
         model: nn.Module,
         inputs: Dict[str, Union[torch.Tensor, Any]],
         prediction_loss_only: bool,

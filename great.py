@@ -148,7 +148,7 @@ class GReaT:
     def fit(
         self,
         data: tp.Union[pd.DataFrame, np.ndarray],
-        # test_data: tp.Union[pd.DataFrame, np.ndarray],
+        test_data: tp.Union[pd.DataFrame, np.ndarray],
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
         resume_from_checkpoint: tp.Union[bool, str] = False,
@@ -180,15 +180,15 @@ class GReaT:
         great_ds = GReaTDataset.from_pandas(df)
         great_ds.set_tokenizer(self.tokenizer)
         ########################################################################
-        # ##### TEST DATA #######################################################
-        # test_df = _array_to_dataframe(test_data, columns=column_names)
-        # # self._update_column_information(df)
-        # # self._update_conditional_information(df, conditional_col)
-        # # Convert DataFrame into HuggingFace dataset object
-        # logging.info("Convert data into HuggingFace dataset object...")
-        # test_great_ds = GReaTDataset.from_pandas(test_df, split="test")
-        # test_great_ds.set_tokenizer(self.tokenizer)
-        # ########################################################################
+        ##### TEST DATA #######################################################
+        test_df = _array_to_dataframe(test_data, columns=column_names)
+        # self._update_column_information(df)
+        # self._update_conditional_information(df, conditional_col)
+        # Convert DataFrame into HuggingFace dataset object
+        logging.info("Convert data into HuggingFace dataset object...")
+        test_great_ds = GReaTDataset.from_pandas(test_df, split="test")
+        test_great_ds.set_tokenizer(self.tokenizer)
+        ########################################################################
 
         # Set training hyperparameters
         logging.info("Create GReaT Trainer...")
@@ -254,33 +254,33 @@ class GReaT:
             
             # fn
 
-            # Setup evaluation 
-            metric = evaluate.load("accuracy")
+            # # Setup evaluation 
+            # metric = evaluate.load("accuracy")
 
-            def compute_metrics(p: EvalPrediction):
-                # print('eval_pred:', p)
-                logits, labels = p
-                # print('eval_logits:', len(logits), logits)
-                # print('eval_labels:', len(labels), labels)
-                predictions = np.argmax(logits, axis=-1)
-                # print('eval_predictions:', len(predictions), predictions)
-                metrics = metric.compute(predictions=predictions[0], references=labels[0])
-                # print('eval_metrics:', len(metrics), metrics)
+            # def compute_metrics(p: EvalPrediction):
+            #     # print('eval_pred:', p)
+            #     logits, labels = p
+            #     # print('eval_logits:', len(logits), logits)
+            #     # print('eval_labels:', len(labels), labels)
+            #     predictions = np.argmax(logits, axis=-1)
+            #     # print('eval_predictions:', len(predictions), predictions)
+            #     metrics = metric.compute(predictions=predictions[0], references=labels[0])
+            #     # print('eval_metrics:', len(metrics), metrics)
 
-                print(self.tokenizer.decode(predictions[0]))
-                print(self.tokenizer.decode(labels[0]))
-                print('...........................................................................................')
-                # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
-                # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
-                # fn
-                # predictions = np.argmax(predictions, axis=1)
-                return metric.compute(predictions=predictions[0], references=labels[0])
+            #     print(self.tokenizer.decode(predictions[0]))
+            #     print(self.tokenizer.decode(labels[0]))
+            #     print('...........................................................................................')
+            #     # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
+            #     # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
+            #     # fn
+            #     # predictions = np.argmax(predictions, axis=1)
+            #     return metric.compute(predictions=predictions[0], references=labels[0])
             
             great_trainer = GReaTTrainer(
                 self.model,
                 training_args,
                 train_dataset=great_ds,
-                # eval_dataset={'validation' : test_great_ds},
+                eval_dataset={'validation' : test_great_ds},
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 optimizers = (self.optimizer, self.lr_scheduler)
