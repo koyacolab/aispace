@@ -114,6 +114,23 @@ class HLSDataSet:
                 self.input_data[i_band] = self.input_data[i_band] * 10**round
                 self.input_data[i_band] = self.input_data[i_band].astype(int)
 
+    def _QUANTIZATE(self, bnd_list=['B04', 'B03', 'B02'], round = 4, data_type='int'):
+
+        self.REFLECT = True
+
+        min_val = -0.063
+        max_val = 0.3
+
+        for i_band in bnd_list:
+            self.input_data[i_band] = 0.0001 * self.input_data[i_band]
+            # Set all elements in column 'B0' greater than 0.3 to 0.3
+            self.input_data[i_band] = self.input_data[i_band].apply(lambda x: min(x, max_val))
+            self.input_data[i_band] = (self.input_data[i_band] - min_val) / (max_val - min_val) 
+            self.input_data[i_band] = self.input_data[i_band].round(round)
+            if data_type == 'int':
+                # self.input_data[i_band] = self.input_data[i_band] * 10**round
+                self.input_data[i_band] = ( self.input_data[i_band] * 255 )  #.astype(np.uint8)
+
 
     def _image_df(self, input):
 
@@ -173,7 +190,8 @@ class HLSDataSet:
                 else:                
                     normalized_band = band
 
-                normalized_band[normalized_band == np.nan] = 0.0 #255
+                    normalized_band[normalized_band == np.nan] = 0 #255
+                    normalized_band = band.astype(np.uint8)
                 return normalized_band
     
             # Scale the bands to 8-bit
@@ -512,6 +530,7 @@ class HLSDataSet:
                 # Replace elements greater than 2000 with 1
                 # print('band:', band.min(), band.max())
                 normalized_band[normalized_band == np.nan] = 255
+                normalized_band = normalized_band.astype(np.uint8)
                 return normalized_band
     
             # Scale the bands to 8-bit
@@ -595,6 +614,8 @@ class HLSDataSet:
             image_plt = image.copy()
             image_plt[nan_mask] = average_value
             # fn
+
+            image_plt = image_plt.astype(np.uint8)
 
             ####################################################
             # Replace NaN values with the mean of non-NaN values
