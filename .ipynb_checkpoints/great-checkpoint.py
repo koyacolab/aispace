@@ -38,6 +38,32 @@ from optimizer import SophiaSchedule
 
 import evaluate
 
+from transformers.trainer_utils import (
+    PREFIX_CHECKPOINT_DIR,
+    BestRun,
+    EvalLoopOutput,
+    EvalPrediction,
+    FSDPOption,
+    HPSearchBackend,
+    HubStrategy,
+    IntervalStrategy,
+    PredictionOutput,
+    RemoveColumnsCollator,
+    TrainerMemoryTracker,
+    TrainOutput,
+    default_compute_objective,
+    denumpify_detensorize,
+    enable_full_determinism,
+    find_executable_batch_size,
+    get_last_checkpoint,
+    has_length,
+    # neftune_post_forward_hook,
+    number_of_arguments,
+    seed_worker,
+    set_seed,
+    speed_metrics,
+)
+
 class GReaT:
     """GReaT Class
 
@@ -247,34 +273,38 @@ class GReaT:
                                                                          num_warmup_steps=self.train_hyperparameters['warmup_steps'],
                                                                          # power=-1,
                                                                          num_training_steps=total_train_steps,
-                                                                         lr_end=self.train_hyperparameters['learning_rate']/10)
+                                                                         lr_end=self.train_hyperparameters['learning_rate'] - \
+                                                                           0.01*self.train_hyperparameters['learning_rate'])
             # lr_scheduler = get_cosine_schedule_with_warmup
             # lr_scheduler = SophiaSchedule(optimizer)
         ############################################################
             
             # fn
 
-            # # Setup evaluation 
+            # Setup evaluation 
             # metric = evaluate.load("accuracy")
+            # from evaluate.metrics import accuracy
 
-            # def compute_metrics(p: EvalPrediction):
-            #     # print('eval_pred:', p)
-            #     logits, labels = p
-            #     # print('eval_logits:', len(logits), logits)
-            #     # print('eval_labels:', len(labels), labels)
-            #     predictions = np.argmax(logits, axis=-1)
-            #     # print('eval_predictions:', len(predictions), predictions)
-            #     metrics = metric.compute(predictions=predictions[0], references=labels[0])
-            #     # print('eval_metrics:', len(metrics), metrics)
+            def compute_metrics(eval_prediction: EvalPrediction):
+                # metric = evaluate.load("accuracy")
+                # print('eval_pred:', p)
+                logits, labels = eval_prediction
+                # print('eval_logits:', len(logits), logits)
+                # print('eval_labels:', len(labels), labels)
+                predictions = np.argmax(logits, axis=-1)
+                # print('eval_predictions:', len(predictions), predictions)
+                # metrics = metric.compute(predictions=predictions[0], references=labels[0])
+                # print('eval_metrics:', len(metrics), metrics)
 
-            #     print(self.tokenizer.decode(predictions[0]))
-            #     print(self.tokenizer.decode(labels[0]))
-            #     print('...........................................................................................')
-            #     # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
-            #     # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
-            #     # fn
-            #     # predictions = np.argmax(predictions, axis=1)
-            #     return metric.compute(predictions=predictions[0], references=labels[0])
+                # print(self.tokenizer.decode(predictions[0]))
+                # print(self.tokenizer.decode(labels[0]))
+                # print('...........................................................................................')
+                
+                # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
+                # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
+                # fn
+                # predictions = np.argmax(predictions, axis=1)
+                return 0   #accuracy.compute(predictions=predictions.flatten(), references=labels.flatten())
             
             great_trainer = GReaTTrainer(
                 self.model,
@@ -283,7 +313,8 @@ class GReaT:
                 eval_dataset={'validation' : test_great_ds},
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
-                optimizers = (self.optimizer, self.lr_scheduler)
+                optimizers = (self.optimizer, self.lr_scheduler),
+                # compute_metrics = compute_metrics,
                 )
         else:
                 print(f'Optimizer: default')
