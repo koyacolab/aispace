@@ -215,6 +215,20 @@ class GReaT:
         test_great_ds = GReaTDataset.from_pandas(test_df, split="test")
         test_great_ds.set_tokenizer(self.tokenizer)
         ########################################################################
+        
+        # test_great_ds_list = []
+        # ##### TEST DATA #######################################################
+        # for test_data in test_data_list:
+        #     test_df = _array_to_dataframe(test_data, columns=column_names)
+        #     # self._update_column_information(df)
+        #     # self._update_conditional_information(df, conditional_col)
+        #     # Convert DataFrame into HuggingFace dataset object
+        #     logging.info("Convert data into HuggingFace dataset object...")
+        #     test_great_ds = GReaTDataset.from_pandas(test_df, split="test")
+        #     test_great_ds.set_tokenizer(self.tokenizer)
+
+        #     test_great_ds_list.append(test_great_ds)
+        # ########################################################################
 
         # Set training hyperparameters
         logging.info("Create GReaT Trainer...")
@@ -284,6 +298,8 @@ class GReaT:
             # Setup evaluation 
             # metric = evaluate.load("accuracy")
             # from evaluate.metrics import accuracy
+            # metric_mae = evaluate.load("./aispace/metrics/mae")
+            # metric_accuracy = evaluate.load("./aispace/metrics/accuracy")
 
             def compute_metrics(eval_prediction: EvalPrediction):
                 # metric = evaluate.load("accuracy")
@@ -304,13 +320,15 @@ class GReaT:
                 # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
                 # fn
                 # predictions = np.argmax(predictions, axis=1)
-                return 0   #accuracy.compute(predictions=predictions.flatten(), references=labels.flatten())
+                # metric = evaluate.combine(["accuracy", "mae"])
+                                         
+                return metric_accuracy.compute(predictions=predictions.flatten(), references=labels.flatten())
             
             great_trainer = GReaTTrainer(
                 self.model,
                 training_args,
                 train_dataset=great_ds,
-                eval_dataset={'validation' : test_great_ds},
+                eval_dataset={'validation' : test_great_ds}, 
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 optimizers = (self.optimizer, self.lr_scheduler),
