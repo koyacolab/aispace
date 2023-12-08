@@ -250,10 +250,10 @@ class GReaT:
                 fn
             #### CALCULATE total_train_steps #########################################
             total_train_steps = 0
-            if self.max_steps < 0:
-                total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
-            else:
-                total_train_steps = self.max_steps
+            # if self.max_steps < 0:
+            #     total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
+            # else:
+            total_train_steps = self.max_steps
                 
             print('total_train_steps calculated:', total_train_steps, len(data), self.batch_size)
             print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
@@ -281,16 +281,28 @@ class GReaT:
                 print('lr_scheduler_type: constant')
                 self.lr_scheduler = get_constant_schedule_with_warmup(self.optimizer, 
                                                                  num_warmup_steps=self.train_hyperparameters['warmup_steps'])
+            ################# POLYNOMIAL #######################################################################
             elif self.train_hyperparameters['lr_scheduler_type'] == 'polynomial':
-                print('lr_scheduler_type: polynomial')
+                scheduler_type = self.train_hyperparameters['lr_scheduler_type']
+                print(f"lr_scheduler_type: {scheduler_type}")
                 self.lr_scheduler = get_polynomial_decay_schedule_with_warmup(self.optimizer, 
                                                                          num_warmup_steps=self.train_hyperparameters['warmup_steps'],
                                                                          # power=-1,
                                                                          num_training_steps=total_train_steps,
-                                                                         lr_end=self.train_hyperparameters['learning_rate']/20) # - \
-                                                                           # 0.01*self.train_hyperparameters['learning_rate'])
-            # lr_scheduler = get_cosine_schedule_with_warmup
-            # lr_scheduler = SophiaSchedule(optimizer)
+                                                                         lr_end=self.train_hyperparameters['learning_rate'] - \
+                                                                          0.001*self.train_hyperparameters['learning_rate'])
+            # #######################################################################################################
+            # elif self.train_hyperparameters['lr_scheduler_type'] == 'polynomial':
+            #     scheduler_type = self.train_hyperparameters['lr_scheduler_type']
+            #     print(f"lr_scheduler_type: {scheduler_type}")
+            #     self.lr_scheduler = get_polynomial_decay_schedule_with_warmup(self.optimizer, 
+            #                                                              num_warmup_steps=self.train_hyperparameters['warmup_steps'],
+            #                                                              power=3,
+            #                                                              num_training_steps=total_train_steps,
+            #                                                              lr_end=self.train_hyperparameters['learning_rate'] / 10.0)  # - \
+            #                                                               # 0.001*self.train_hyperparameters['learning_rate'])
+            # #################################################################################################
+
         ############################################################
             
             # fn
@@ -301,28 +313,44 @@ class GReaT:
             # metric_mae = evaluate.load("./aispace/metrics/mae")
             # metric_accuracy = evaluate.load("./aispace/metrics/accuracy")
 
-            def compute_metrics(eval_prediction: EvalPrediction):
-                # metric = evaluate.load("accuracy")
-                # print('eval_pred:', p)
-                logits, labels = eval_prediction
-                # print('eval_logits:', len(logits), logits)
-                # print('eval_labels:', len(labels), labels)
-                predictions = np.argmax(logits, axis=-1)
-                # print('eval_predictions:', len(predictions), predictions)
-                # metrics = metric.compute(predictions=predictions[0], references=labels[0])
-                # print('eval_metrics:', len(metrics), metrics)
+            # def compute_metrics(eval_prediction: EvalPrediction):
+            #     # metric = evaluate.load("accuracy")
+            #     # print('eval_pred:', p)
+            #     logits, labels = eval_prediction
+            #     # print('eval_logits:', len(logits), logits)
+            #     # print('eval_labels:', len(labels), labels)
+            #     predictions = np.argmax(logits, axis=-1)
+            #     # print('eval_predictions:', len(predictions), predictions)
+            #     # metrics = metric.compute(predictions=predictions[0], references=labels[0])
+            #     # print('eval_metrics:', len(metrics), metrics)
 
-                # print(self.tokenizer.decode(predictions[0]))
-                # print(self.tokenizer.decode(labels[0]))
-                # print('...........................................................................................')
+            #     # print(self.tokenizer.decode(predictions[0]))
+            #     # print(self.tokenizer.decode(labels[0]))
+            #     # print('...........................................................................................')
                 
-                # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
-                # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
-                # fn
-                # predictions = np.argmax(predictions, axis=1)
-                # metric = evaluate.combine(["accuracy", "mae"])
+            #     # print(self.tokenizer.convert_ids_to_tokens(predictions[0]))
+            #     # print(self.tokenizer.convert_ids_to_tokens(labels[0]))
+            #     # fn
+            #     # predictions = np.argmax(predictions, axis=1)
+            #     # metric = evaluate.combine(["accuracy", "mae"])
                                          
-                return metric_accuracy.compute(predictions=predictions.flatten(), references=labels.flatten())
+            #     return metric_accuracy.compute(predictions=predictions.flatten(), references=labels.flatten())
+
+        ##########################################################################
+
+            from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+
+            def compute_metrics(pred):
+                labels = pred.label_ids
+                preds = pred.predictions.argmax(-1)
+                # precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
+                acc = accuracy_score(labels, preds)
+                return {
+                    'accuracy': acc,
+                    # 'f1': f1,
+                    # 'precision': precision,
+                    # 'recall': recall
+                }
             
             great_trainer = GReaTTrainer(
                 self.model,
