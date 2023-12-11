@@ -242,7 +242,7 @@ class GReaT:
 
         # optimizer = 'sophia'
         if (self.optimizer == 'Sophia') | (self.optimizer == 'sophia'):
-            print(f'Optimiser: Sophia')
+            print(f'Optimiser: 2nd order - Sophia')
             print('self.train_hyperparameters:', self.train_hyperparameters)
         ######### Sophia Scheduler #################################
             if len(data) // self.batch_size < 1:
@@ -250,10 +250,10 @@ class GReaT:
                 fn
             #### CALCULATE total_train_steps #########################################
             total_train_steps = 0
-            # if self.max_steps < 0:
-            #     total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
-            # else:
-            total_train_steps = self.max_steps
+            if self.max_steps < 0:
+                total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
+            else:
+                total_train_steps = self.max_steps
                 
             print('total_train_steps calculated:', total_train_steps, len(data), self.batch_size)
             print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
@@ -297,10 +297,9 @@ class GReaT:
             #     print(f"lr_scheduler_type: {scheduler_type}")
             #     self.lr_scheduler = get_polynomial_decay_schedule_with_warmup(self.optimizer, 
             #                                                              num_warmup_steps=self.train_hyperparameters['warmup_steps'],
-            #                                                              power=3,
+            #                                                              power=-1,
             #                                                              num_training_steps=total_train_steps,
-            #                                                              lr_end=self.train_hyperparameters['learning_rate'] / 10.0)  # - \
-            #                                                               # 0.001*self.train_hyperparameters['learning_rate'])
+            #                                                              lr_end=1e-9)
             # #################################################################################################
 
         ############################################################
@@ -363,12 +362,13 @@ class GReaT:
                 # compute_metrics = compute_metrics,
                 )
         else:
-                print(f'Optimizer: default')
+                print(f'Optimizer: 1st order')
             
                 great_trainer = GReaTTrainer(
                 self.model,
                 training_args,
                 train_dataset=great_ds,
+                eval_dataset={'validation' : test_great_ds}, 
                 # eval_dataset=test_great_ds,
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),

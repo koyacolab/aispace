@@ -1,0 +1,11 @@
+{
+"scheduler": {
+    "type": "LRRangeTest",
+    "params": {
+        "lr_range_test_min_lr": 0.0001,
+        "lr_range_test_step_size": 200,
+        "lr_range_test_step_rate": 5,
+        "lr_range_test_staircase": false
+    }
+}
+}
