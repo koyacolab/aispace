@@ -70,7 +70,7 @@ class GReaTTrainer(Trainer):
             worker_init_fn=_seed_worker,
         )
 
-###################################################################################################
+######################### ADD FOR VALIDATION CALCULATION ##########################################################################
     def prediction_step(
         self,
         model: nn.Module,

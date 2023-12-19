@@ -10,7 +10,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, AutoConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, AutoConfig, TrainerCallback
 
 from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup 
 from transformers.optimization import get_cosine_with_hard_restarts_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
@@ -360,6 +360,43 @@ class GReaT:
                     # 'precision': precision,
                     # 'recall': recall
                 }
+
+            class MyCallback(TrainerCallback):
+                "A callback that prints a message at the beginning of training"
+                def __init__(self, func):
+                    self.func = func
+                    super().__init__()
+            
+                def on_step_end(self, args, state, control, **kwargs):
+                    ep_list = [x for x in range(1000, state.max_steps, state.max_steps // 10)]
+                    if int(state.global_step) in ep_list and state.epoch > 0:
+                        # print("callback on_evaluate")
+                        # display(test_data)
+                        
+                        # print(great_trainer.model)
+                        # print('mmm:', self.mmm)
+    
+                        print(state.epoch)
+                        
+                        to_impute = test_data.copy()
+                        to_impute[['B02', 'B03', 'B04']] = np.nan
+                        # display(to_impute)
+                        
+                        imputed_data = self.func(df_miss=to_impute, k=1000, max_length=40, temperature=1e-32, device='cuda')
+                        # display(imputed_data)
+    
+                        # Extract the values from the specified columns for both dataframes
+                        cols = ['B02', 'B03', 'B04']
+                        arr1 = test_data[cols].values
+                        arr2 = imputed_data[cols].values
+    
+                        # Calculate L1 and L2 norms for each row
+                        l1_norms = np.linalg.norm(arr1 - arr2, ord=1, axis=1)
+                        l2_norms = np.linalg.norm(arr1 - arr2, ord=2, axis=1)
+    
+                        print('L1:', np.sum(l1_norms)/len(l1_norms), ', L2:', np.sum(l2_norms)/len(l2_norms))
+                    
+                    # fn
             
             great_trainer = GReaTTrainer(
                 self.model,
@@ -369,6 +406,7 @@ class GReaT:
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 optimizers = (self.optimizer, self.lr_scheduler),
+                # callbacks=[MyCallback(self.impute)],
                 # compute_metrics = compute_metrics,
                 )
         else:
@@ -388,117 +426,6 @@ class GReaT:
         logging.info("Start training...")
         great_trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         return great_trainer
-
-    def sample(
-        self,
-        n_samples: int,
-        start_col: tp.Optional[str] = "",
-        start_col_dist: tp.Optional[tp.Union[dict, list]] = None,
-        temperature: float = 0.7,
-        k: int = 100,
-        max_length: int = 100,
-        drop_nan: bool = False,
-        device: str = "cuda",
-    ) -> pd.DataFrame:
-        """
-        Generate synthetic tabular data samples.
-
-        Args:
-            n_samples (int): Number of synthetic samples to generate.
-            start_col (str, optional): Feature to use as the starting point for the generation process.
-                Defaults to the target learned during fitting if not provided.
-            start_col_dist (dict or list, optional): Feature distribution of the starting feature.
-                For discrete columns, should be in the format "{F1: p1, F2: p2, ...}".
-                For continuous columns, should be a list of possible values.
-                Defaults to the target distribution learned during fitting if not provided.
-            temperature (float): Controls the softmax function for token sampling.
-                Lower values make it sharper (0 equals greedy search), higher values introduce more diversity but also uncertainty.
-            k (int): Sampling batch size. Higher values speed up the generation process.
-            max_length (int): Maximum number of tokens to generate. Ensure it's long enough to not cut off any information.
-            drop_nan (bool): Whether to drop rows with NaN values. Defaults to False.
-            device (str): Device to use for generation. Set to "cpu" to avoid using GPU. Specific GPU can also be named.
-
-        Returns:
-            pd.DataFrame: DataFrame containing n_samples rows of generated data.
-        """
-        great_start = self._get_start_sampler(start_col, start_col_dist)
-
-        # Move model to device
-        self.model.to(device)
-
-        # Init list for generated DataFrames
-        dfs = []
-
-        # Start generation process
-        with tqdm(total=n_samples) as pbar:
-            already_generated = 0
-            _cnt = 0
-            try:
-                while n_samples > already_generated:
-                    start_tokens = great_start.get_start_tokens(k)
-                    start_tokens = torch.tensor(start_tokens).to(device)
-
-                    # Generate tokens
-                    tokens = self.model.generate(
-                        input_ids=start_tokens,
-                        max_length=max_length,
-                        do_sample=True,
-                        temperature=temperature,
-                        pad_token_id=50256,
-                    )
-
-                    # Convert tokens back to tabular data
-                    text_data = _convert_tokens_to_text(tokens, self.tokenizer)
-                    df_gen = _convert_text_to_tabular_data(text_data, self.columns)
-
-                    # Remove rows where we have not generated anything
-                    df_gen = df_gen[~(df_gen == "placeholder").any(axis=1)]
-
-                    # Remove rows where all values are NaN
-                    df_gen = df_gen.dropna(how="all")
-
-                    # Optional: Remove rows with any NaN values
-                    if drop_nan:
-                        df_gen = df_gen.dropna()
-
-                    # Remove rows with flawed numerical values but keep NaNs
-                    for i_num_cols in self.num_cols:
-                        coerced_series = pd.to_numeric(
-                            df_gen[i_num_cols], errors="coerce"
-                        )
-                        df_gen = df_gen[
-                            coerced_series.notnull() | df_gen[i_num_cols].isna()
-                        ]
-
-                    # Convert numerical columns to float
-                    df_gen[self.num_cols] = df_gen[self.num_cols].astype(float)
-
-                    dfs.append(df_gen)
-                    already_generated += len(dfs[-1])
-
-                    # Update progress bar
-                    pbar.update(len(dfs[-1]))
-
-                    # Check if we are actually generating synthetic samples and if not, break everything
-                    _cnt += 1
-                    if _cnt > 13 and already_generated == 0:
-                        raise Exception("Breaking the generation loop!")
-
-            except Exception as e:
-                print(f"{bcolors.FAIL}An error has occurred: {str(e)}{bcolors.ENDC}")
-                print(
-                    f"{bcolors.WARNING}To address this issue, consider fine-tuning the GReaT model for an longer period. This can be achieved by increasing the number of epochs.{bcolors.ENDC}"
-                )
-                print(
-                    f"{bcolors.WARNING}Alternatively, you might consider increasing the max_length parameter within the sample function. For example: model.sample(n_samples=10, max_length=2000){bcolors.ENDC}"
-                )
-                print(
-                    f"{bcolors.OKBLUE}If the problem persists despite these adjustments, feel free to raise an issue on our GitHub page at: https://github.com/kathrinse/be_great/issues{bcolors.ENDC}"
-                )
-
-        df_gen = pd.concat(dfs)
-        df_gen = df_gen.reset_index(drop=True)
-        return df_gen.head(n_samples)
 
     def great_sample(
         self,
@@ -564,7 +491,7 @@ class GReaT:
     
             generated_data.append(torch.squeeze(gen))
 
-            # ###########################################################################
+            # # ##########################################################################
             # # print('generated_data:', gen)
             # # text_data = [self.tokenizer.decode(t) for t in generated_data]
             # tokens = [self.tokenizer.convert_ids_to_tokens(t) for t in generated_data]
@@ -579,7 +506,7 @@ class GReaT:
             # text_data = [d.replace("\r", "") for d in text_data]
             # print('text_data:', text_data)
             # # fn
-            # ###########################################################################
+            # # ##########################################################################
 
         # Convert Text back to Tabular Data
         decoded_data = _convert_tokens_to_text(generated_data, self.tokenizer)
@@ -588,7 +515,7 @@ class GReaT:
         # # ###############################################################################
         # print('decoded_data:', decoded_data)
         # print('------------------------------------')
-        # # # fn
+        # fn
         # # ###########################################################################
 
         return df_gen
@@ -620,6 +547,9 @@ class GReaT:
             Pandas DataFrame with n_samples rows of generated data
         """
 
+        # print('impute')
+        # fn
+        
         # Check DataFrame passed.
         if set(df_miss.columns) != set(self.columns):
             raise ValueError(
@@ -642,22 +572,22 @@ class GReaT:
                     # Generate text promt from current features.
                     starting_prompts = _partial_df_to_promts(df_curr)
 
-                    # ###########################################################
+                    # # ##########################################################
                     # print("Number of missing values: ",  num_attrs_missing)
-                    # display(df_miss)
-                    # display(df_curr)
+                    # display('df_miss:', df_miss)
+                    # display('df_curr:', df_curr)
                     # print('starting_prompts:', starting_prompts)
-                    # ###########################################################
+                    # # ##########################################################
                     
                     df_curr = self.great_sample(
                         starting_prompts, temperature, max_length, device=device
                     )
 
-                    # ###########################################################
+                    # # ##########################################################
                     # print('predict:') 
                     # display(df_curr)
                     # fn
-                    # ###########################################################
+                    # # ##########################################################
 
                     # Convert numerical values to float, flawed numerical values to NaN
                     for i_num_cols in self.num_cols:
@@ -804,3 +734,117 @@ class GReaT:
             return ContinuousStart(self.tokenizer, start_col, start_col_dist)
         else:
             return RandomStart(self.tokenizer, self.columns)
+
+
+###########################################################################################
+
+    def sample(
+        self,
+        n_samples: int,
+        start_col: tp.Optional[str] = "",
+        start_col_dist: tp.Optional[tp.Union[dict, list]] = None,
+        temperature: float = 0.7,
+        k: int = 100,
+        max_length: int = 100,
+        drop_nan: bool = False,
+        device: str = "cuda",
+    ) -> pd.DataFrame:
+        """
+        Generate synthetic tabular data samples.
+
+        Args:
+            n_samples (int): Number of synthetic samples to generate.
+            start_col (str, optional): Feature to use as the starting point for the generation process.
+                Defaults to the target learned during fitting if not provided.
+            start_col_dist (dict or list, optional): Feature distribution of the starting feature.
+                For discrete columns, should be in the format "{F1: p1, F2: p2, ...}".
+                For continuous columns, should be a list of possible values.
+                Defaults to the target distribution learned during fitting if not provided.
+            temperature (float): Controls the softmax function for token sampling.
+                Lower values make it sharper (0 equals greedy search), higher values introduce more diversity but also uncertainty.
+            k (int): Sampling batch size. Higher values speed up the generation process.
+            max_length (int): Maximum number of tokens to generate. Ensure it's long enough to not cut off any information.
+            drop_nan (bool): Whether to drop rows with NaN values. Defaults to False.
+            device (str): Device to use for generation. Set to "cpu" to avoid using GPU. Specific GPU can also be named.
+
+        Returns:
+            pd.DataFrame: DataFrame containing n_samples rows of generated data.
+        """
+        great_start = self._get_start_sampler(start_col, start_col_dist)
+
+        # Move model to device
+        self.model.to(device)
+
+        # Init list for generated DataFrames
+        dfs = []
+
+        # Start generation process
+        with tqdm(total=n_samples) as pbar:
+            already_generated = 0
+            _cnt = 0
+            try:
+                while n_samples > already_generated:
+                    start_tokens = great_start.get_start_tokens(k)
+                    start_tokens = torch.tensor(start_tokens).to(device)
+
+                    # Generate tokens
+                    tokens = self.model.generate(
+                        input_ids=start_tokens,
+                        max_length=max_length,
+                        do_sample=True,
+                        temperature=temperature,
+                        pad_token_id=50256,
+                    )
+
+                    # Convert tokens back to tabular data
+                    text_data = _convert_tokens_to_text(tokens, self.tokenizer)
+                    df_gen = _convert_text_to_tabular_data(text_data, self.columns)
+
+                    # Remove rows where we have not generated anything
+                    df_gen = df_gen[~(df_gen == "placeholder").any(axis=1)]
+
+                    # Remove rows where all values are NaN
+                    df_gen = df_gen.dropna(how="all")
+
+                    # Optional: Remove rows with any NaN values
+                    if drop_nan:
+                        df_gen = df_gen.dropna()
+
+                    # Remove rows with flawed numerical values but keep NaNs
+                    for i_num_cols in self.num_cols:
+                        coerced_series = pd.to_numeric(
+                            df_gen[i_num_cols], errors="coerce"
+                        )
+                        df_gen = df_gen[
+                            coerced_series.notnull() | df_gen[i_num_cols].isna()
+                        ]
+
+                    # Convert numerical columns to float
+                    df_gen[self.num_cols] = df_gen[self.num_cols].astype(float)
+
+                    dfs.append(df_gen)
+                    already_generated += len(dfs[-1])
+
+                    # Update progress bar
+                    pbar.update(len(dfs[-1]))
+
+                    # Check if we are actually generating synthetic samples and if not, break everything
+                    _cnt += 1
+                    if _cnt > 13 and already_generated == 0:
+                        raise Exception("Breaking the generation loop!")
+
+            except Exception as e:
+                print(f"{bcolors.FAIL}An error has occurred: {str(e)}{bcolors.ENDC}")
+                print(
+                    f"{bcolors.WARNING}To address this issue, consider fine-tuning the GReaT model for an longer period. This can be achieved by increasing the number of epochs.{bcolors.ENDC}"
+                )
+                print(
+                    f"{bcolors.WARNING}Alternatively, you might consider increasing the max_length parameter within the sample function. For example: model.sample(n_samples=10, max_length=2000){bcolors.ENDC}"
+                )
+                print(
+                    f"{bcolors.OKBLUE}If the problem persists despite these adjustments, feel free to raise an issue on our GitHub page at: https://github.com/kathrinse/be_great/issues{bcolors.ENDC}"
+                )
+
+        df_gen = pd.concat(dfs)
+        df_gen = df_gen.reset_index(drop=True)
+        return df_gen.head(n_samples)
