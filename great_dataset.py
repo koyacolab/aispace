@@ -36,6 +36,7 @@ class GReaTDataset(Dataset):
         # ####### ORIGINAL SHUFFLING ##############################
         shuffle_idx = list(range(row.num_columns))
         random.shuffle(shuffle_idx)
+        
         # ######## SHUFFLING ONLY IMPUTED COLUMNS #########################################
         # shuffle_idx = list(range(row.num_columns))[-4:]
         # random.shuffle(shuffle_idx)

@@ -10,7 +10,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, AutoConfig
 
 from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup 
 from transformers.optimization import get_cosine_with_hard_restarts_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
@@ -96,7 +96,7 @@ class GReaT:
         batch_size: int = 8,
         efficient_finetuning: str = "",
         optimizer = 'sophia',
-        num_cycles=4,
+        num_cycles=1,
         **train_kwargs,
     ):
         """Initializes GReaT.
@@ -118,8 +118,18 @@ class GReaT:
         self.tiktok = tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.llm) #.to(device)
+        self.model = AutoModelForCausalLM.from_pretrained(self.llm, 
+                                                          attn_pdrop=0.3,) 
+                                                          # embd_pdrop=0.3, 
+                                                          # resid_pdrop=0.3, 
+                                                          # summary_first_dropout=0.3) #.to(device)
 
+        # config = AutoConfig.from_pretrained(self.llm)
+
+        # print('config:')
+        # print(config)
+        # print('---------------------------------')
+        # fn
 
 
         if self.efficient_finetuning == "lora":
@@ -262,8 +272,8 @@ class GReaT:
             self.optimizer = SophiaG(self.model.parameters(), 
                                     lr=self.train_hyperparameters['learning_rate'], 
                                     betas=(0.965, 0.99), 
-                                    rho = 0.01, 
-                                    weight_decay=1e-1)
+                                    rho = 0.05, 
+                                    weight_decay=2e-1)      
 
             #### SET lr_scheduler_type ################################
             if self.train_hyperparameters['lr_scheduler_type'] == 'cosine':
@@ -289,8 +299,8 @@ class GReaT:
                                                                          num_warmup_steps=self.train_hyperparameters['warmup_steps'],
                                                                          # power=-1,
                                                                          num_training_steps=total_train_steps,
-                                                                         lr_end=self.train_hyperparameters['learning_rate'] - \
-                                                                          0.001*self.train_hyperparameters['learning_rate'])
+                                                                         lr_end=self.train_hyperparameters['learning_rate'] / 2) # - \
+                                                                            # 0.00001*self.train_hyperparameters['learning_rate'])
             # #######################################################################################################
             # elif self.train_hyperparameters['lr_scheduler_type'] == 'polynomial':
             #     scheduler_type = self.train_hyperparameters['lr_scheduler_type']
@@ -515,6 +525,9 @@ class GReaT:
         """
         # ToDo: Add n_samples argument to generate more samples for one conditional input.
 
+        from transformers import set_seed
+        set_seed(42)
+
         self.model.to(device)
         starting_prompts = (
             [starting_prompts]
@@ -544,6 +557,7 @@ class GReaT:
                 input_ids=torch.unsqueeze(start_token, 0),
                 max_length=max_length,
                 do_sample=True,
+                top_k=0,
                 temperature=temperature,
                 pad_token_id=50256,
             )

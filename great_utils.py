@@ -117,14 +117,15 @@ def _convert_text_to_tabular_data(
 def _encode_row_partial(row, shuffle=True):
     """Function that takes a row and converts all columns into the text representation that are not NaN."""
     num_cols = len(row.index)
-    
-    # ###############################################
+
     row = row.astype('Int64', errors='ignore')
+    
+    # # ###############################################
     # print('_encode_row_partial:', type(row))
     # display(row)
     # # display(row.astype(int, errors='ignore'))
-    # fn
-    # ###############################################
+    # # fn
+    # # ###############################################
     
     if not shuffle:
         idx_list = np.arange(num_cols)
@@ -142,6 +143,9 @@ def _encode_row_partial(row, shuffle=True):
             [],
         )
     )
+
+    # print('lists:', lists)
+    # fn
     return lists
     # Now append first NaN attribute
 
@@ -151,6 +155,42 @@ def _get_random_missing(row):
     nans = list(row[pd.isna(row)].index)
     return np.random.choice(nans) if len(nans) > 0 else None
 
+
+def _original_partial_df_to_promts(partial_df: pd.DataFrame):
+    """Convert DataFrame with missingvalues to a list of starting promts for GReaT
+        Args:
+        partial_df: Pandas DataFrame to be imputed where missing values are encoded by NaN.
+
+    Returns:
+        List of strings with the starting prompt for each sample.
+    """
+    # #######################################
+    # print('partial_df:')
+    # display(partial_df)
+    # #######################################
+    
+    encoder = lambda x: _encode_row_partial(x, shuffle=False)
+    res_encode = list(partial_df.apply(encoder, axis=1))
+    res_first = list(partial_df.apply(_get_random_missing, axis=1))
+
+    # # #########################################################
+    # print('_partial_df_to_promts, res_encode:', res_encode)
+    # print('_partial_df_to_promts, res_encode:', res_first)
+    # # # fn
+    # # #########################################################
+    
+
+    # Edge case: all values are missing, will return empty string which is not supported.
+    # Use first attribute as starting prompt.
+    # default_promt = partial_df.columns[0] + " is "
+    res = [
+        ((enc + ", ") if len(enc) > 0 else "")
+        + (fst + " is" if fst is not None else "")
+        for enc, fst in zip(res_encode, res_first)
+    ]
+
+    # print('_partial_df_to_promts, res_output:', res)
+    return res
 
 def _partial_df_to_promts(partial_df: pd.DataFrame):
     """Convert DataFrame with missingvalues to a list of starting promts for GReaT
@@ -165,24 +205,33 @@ def _partial_df_to_promts(partial_df: pd.DataFrame):
     # display(partial_df)
     # #######################################
     
-    encoder = lambda x: _encode_row_partial(x, True)
+    encoder = lambda x: _encode_row_partial(x, shuffle=True)
     res_encode = list(partial_df.apply(encoder, axis=1))
     res_first = list(partial_df.apply(_get_random_missing, axis=1))
 
     # #########################################################
-    # print('_partial_df_to_promts:', res_encode, res_first)
-    # fn
+    # print('_partial_df_to_promts, res_encode:', res_encode)
+    # print('_partial_df_to_promts, res_encode:', res_first)
+    # # fn
     # #########################################################
     
 
     # Edge case: all values are missing, will return empty string which is not supported.
     # Use first attribute as starting prompt.
     # default_promt = partial_df.columns[0] + " is "
+    # res = [
+    #     ((enc + ", ") if len(enc) > 0 else "")
+    #     + (fst + " is" if fst is not None else "")
+    #     for enc, fst in zip(res_encode, res_first)
+    # ]
+
     res = [
-        ((enc + ", ") if len(enc) > 0 else "")
-        + (fst + " is" if fst is not None else "")
-        for enc, fst in zip(res_encode, res_first)
+    ((enc + ", ") if len(enc) > 0 else "")
+    # + (fst + " is" if fst is not None else "")
+    for enc, fst in zip(res_encode, res_first)
     ]
+
+    # print('_partial_df_to_promts, res_output:', res)
     return res
 
 

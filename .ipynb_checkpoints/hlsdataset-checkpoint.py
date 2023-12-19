@@ -124,7 +124,8 @@ class HLSDataSet:
         for i_band in bnd_list:
             self.input_data[i_band] = 0.0001 * self.input_data[i_band]
             # Set all elements in column 'B0' greater than 0.3 to 0.3
-            self.input_data[i_band] = self.input_data[i_band].apply(lambda x: min(x, max_val))
+            self.input_data[i_band] = np.where(self.input_data[i_band] > max_val, max_val, self.input_data[i_band])
+            # self.input_data[i_band] = self.input_data[i_band].apply(lambda x: min(x, max_val))
             self.input_data[i_band] = (self.input_data[i_band] - min_val) / (max_val - min_val) 
             self.input_data[i_band] = self.input_data[i_band].round(round)
             if data_type == 'int':
@@ -198,7 +199,7 @@ class HLSDataSet:
             scaled_red = generalized_normalization(image[2,:,:])
             scaled_green = generalized_normalization(image[1,:,:])
             scaled_blue = generalized_normalization(image[0,:,:])
-    
+     
             rgb = np.dstack((scaled_red, scaled_green, scaled_blue))
     
             return rgb
