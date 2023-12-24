@@ -169,7 +169,7 @@ def _original_partial_df_to_promts(partial_df: pd.DataFrame):
     # display(partial_df)
     # #######################################
     
-    encoder = lambda x: _encode_row_partial(x, shuffle=False)
+    encoder = lambda x: _encode_row_partial(x, shuffle=True)
     res_encode = list(partial_df.apply(encoder, axis=1))
     res_first = list(partial_df.apply(_get_random_missing, axis=1))
 

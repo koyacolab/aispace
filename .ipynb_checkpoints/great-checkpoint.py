@@ -118,18 +118,20 @@ class GReaT:
         self.tiktok = tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.llm, 
-                                                          attn_pdrop=0.3,) 
+        self.model = AutoModelForCausalLM.from_pretrained(self.llm)  #, 
+                                                          # attn_pdrop=0.3,) 
                                                           # embd_pdrop=0.3, 
                                                           # resid_pdrop=0.3, 
                                                           # summary_first_dropout=0.3) #.to(device)
 
+        # #### USE CONFIG TO SET DROPOUTS FOR LAYERS ####################################
         # config = AutoConfig.from_pretrained(self.llm)
 
         # print('config:')
         # print(config)
         # print('---------------------------------')
         # fn
+        # ###############################################################################
 
 
         if self.efficient_finetuning == "lora":
@@ -370,11 +372,6 @@ class GReaT:
                 def on_step_end(self, args, state, control, **kwargs):
                     ep_list = [x for x in range(1000, state.max_steps, state.max_steps // 10)]
                     if int(state.global_step) in ep_list and state.epoch > 0:
-                        # print("callback on_evaluate")
-                        # display(test_data)
-                        
-                        # print(great_trainer.model)
-                        # print('mmm:', self.mmm)
     
                         print(state.epoch)
                         
@@ -411,13 +408,13 @@ class GReaT:
                 )
         else:
                 print(f'Optimizer: 1st order')
+                # print(f'training_args: {training_args}')
             
                 great_trainer = GReaTTrainer(
                 self.model,
                 training_args,
                 train_dataset=great_ds,
                 eval_dataset={'validation' : test_great_ds}, 
-                # eval_dataset=test_great_ds,
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 )
@@ -573,9 +570,9 @@ class GReaT:
                     starting_prompts = _partial_df_to_promts(df_curr)
 
                     # # ##########################################################
-                    # print("Number of missing values: ",  num_attrs_missing)
-                    # display('df_miss:', df_miss)
-                    # display('df_curr:', df_curr)
+                    # # print("Number of missing values: ",  num_attrs_missing)
+                    # # display('df_miss:', df_miss)
+                    # # display('df_curr:', df_curr)
                     # print('starting_prompts:', starting_prompts)
                     # # ##########################################################
                     
@@ -586,7 +583,7 @@ class GReaT:
                     # # ##########################################################
                     # print('predict:') 
                     # display(df_curr)
-                    # fn
+                    # # fn
                     # # ##########################################################
 
                     # Convert numerical values to float, flawed numerical values to NaN

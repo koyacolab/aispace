@@ -38,9 +38,12 @@ class GReaTDataset(Dataset):
         random.shuffle(shuffle_idx)
         
         # ######## SHUFFLING ONLY IMPUTED COLUMNS #########################################
-        # shuffle_idx = list(range(row.num_columns))[-4:]
-        # random.shuffle(shuffle_idx)
-        # shuffle_idx = list(range(row.num_columns))[:-4] + shuffle_idx
+        # shuffle_idx_imp = list(range(row.num_columns))[2:5]
+        # random.shuffle(shuffle_idx_imp)
+        # shuffle_idx_tar = list(range(row.num_columns))[0:2]
+        # random.shuffle(shuffle_idx_tar)
+        
+        # shuffle_idx = shuffle_idx_tar + shuffle_idx_imp
         # #################################################################################
 
         
@@ -54,17 +57,17 @@ class GReaTDataset(Dataset):
 
         tokenized_text = self.tokenizer(shuffled_text, padding=True)
 
-        # ##### CHECK INPUTS ############################################################
-        # #### check shuffled_text ###########
-        # print(f'[{shuffled_text}]')
-        # ###################################
-        # # print(key, {type(key)}, {key}')
-        # # fn        
+        ##### CHECK INPUTS ############################################################
+        #### check shuffled_text ###########
+        print(f'[{shuffled_text}]')
+        ###################################
+        # print(key, {type(key)}, {key}')
+        # fn        
         
-        # tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
-        # print(f'[{tokenized_text}]')
-        # fn
-        # #################################################################################
+        tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
+        print(f'[{tokenized_text}]')
+        fn
+        #################################################################################
         
         return tokenized_text
 
