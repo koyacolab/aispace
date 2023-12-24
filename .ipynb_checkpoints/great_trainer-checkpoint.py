@@ -95,7 +95,7 @@ class GReaTTrainer(Trainer):
 
 
 ######################### CUSTOM TRAINING STEP ####################################################################
-    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+    def A_training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
         """
         Perform a training step on a batch of inputs.
 
@@ -135,7 +135,7 @@ class GReaTTrainer(Trainer):
         return loss.detach() / self.args.gradient_accumulation_steps
 
 ######################### CUSTOM COMPUTE_LOSS #####################################################################################
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def A_compute_loss(self, model, inputs, return_outputs=False):
         """
         How the loss is computed by Trainer. By default, all models return the loss in the first element.
 
@@ -143,11 +143,11 @@ class GReaTTrainer(Trainer):
         """
 
         ###############################################################
-        # print('compute_loss inputs:', inputs)
+        print('compute_loss inputs.keys:', inputs.keys())
         # print('compute_loss **inputs:', **inputs)
-        print('inputs.inputs_ids:', inputs.input_ids[0])
+        print('inputs.inputs_ids:', inputs.input_ids)
         decoded = self.tokenizer.decode(inputs.input_ids[0])
-        print('decoded:', decoded)
+        print('decoded inputs:', decoded)
         ###############################################################
         
         if self.label_smoother is not None and "labels" in inputs:
@@ -157,13 +157,18 @@ class GReaTTrainer(Trainer):
         outputs = model(**inputs)
 
         ###############################################################
-        print('outputs: ', outputs)
+        print('outputs: ', outputs.keys())
+        print('---------------------------')
+        # print('outputs.past_key_values:', outputs.past_key_values[0])
         print('---------------------------')
         logits = outputs.logits[0].cpu().detach().numpy()
-        print('outputs logits:', logits)
+        print('outputs.logits:', logits)
         predictions = np.argmax(logits, axis=-1)
         print('predictions:', predictions)
         print(self.tokenizer.decode(predictions))
+
+        print('----------- model ------------------------')
+        print(model)
         
         fn
         ###############################################################

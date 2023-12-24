@@ -124,14 +124,21 @@ class GReaT:
                                                           # resid_pdrop=0.3, 
                                                           # summary_first_dropout=0.3) #.to(device)
 
-        #### USE CONFIG TO SET DROPOUTS FOR LAYERS ####################################
-        config = AutoConfig.from_pretrained(self.llm)
+        self.model.resize_token_embeddings(len(self.tokenizer))
 
-        print('config:')
-        print(config)
-        print('---------------------------------')
-        fn
-        ###############################################################################
+        # ##################################################
+        # vocab = self.tokenizer.get_vocab()
+        # self.model.resize_token_embeddings(len(vocab))
+        # ##################################################
+
+        # #### USE CONFIG TO SET DROPOUTS FOR LAYERS #######
+        # config = AutoConfig.from_pretrained(self.llm)
+
+        # print('config:')
+        # print(config)
+        # print('---------------------------------')
+        # fn
+        # ##################################################
 
 
         if self.efficient_finetuning == "lora":

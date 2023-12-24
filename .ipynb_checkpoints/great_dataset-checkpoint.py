@@ -59,13 +59,15 @@ class GReaTDataset(Dataset):
 
         ##### CHECK INPUTS ############################################################
         #### check shuffled_text ###########
-        print(f'[{shuffled_text}]')
+        print('\n -------------- DATASET: CHECK TOKENIZER --------------------------------')
+        print(f'\n [{shuffled_text}]')
         ###################################
         # print(key, {type(key)}, {key}')
         # fn        
         
         tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
-        print(f'[{tokenized_text}]')
+        print(f'\n {len(tokenized_text)}: [{tokenized_text}]')
+        print('\n ------------------------------------------------------------------------')
         fn
         #################################################################################
         

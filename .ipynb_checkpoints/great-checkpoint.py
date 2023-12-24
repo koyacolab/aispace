@@ -124,6 +124,9 @@ class GReaT:
                                                           # resid_pdrop=0.3, 
                                                           # summary_first_dropout=0.3) #.to(device)
 
+        vocab = self.tokenizer.get_vocab()
+        self.model.resize_token_embeddings(len(vocab))
+
         # #### USE CONFIG TO SET DROPOUTS FOR LAYERS ####################################
         # config = AutoConfig.from_pretrained(self.llm)
 
