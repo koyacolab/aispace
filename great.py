@@ -118,13 +118,13 @@ class GReaT:
         self.tiktok = tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.llm)  #, 
+        self.model = AutoModelForCausalLM.from_pretrained(self.llm)      #, 
                                                           # attn_pdrop=0.3,) 
                                                           # embd_pdrop=0.3, 
                                                           # resid_pdrop=0.3, 
                                                           # summary_first_dropout=0.3) #.to(device)
 
-        self.model.resize_token_embeddings(len(self.tokenizer))
+        self.model.resize_token_embeddings( len(self.tokenizer) )
 
         # ##################################################
         # vocab = self.tokenizer.get_vocab()

@@ -5,6 +5,8 @@ from datasets import Dataset
 from dataclasses import dataclass
 from transformers import DataCollatorWithPadding
 
+from transformers.tokenization_utils_base import BatchEncoding
+
 
 class GReaTDataset(Dataset):
     """GReaT Dataset
@@ -33,9 +35,11 @@ class GReaTDataset(Dataset):
         # If int, what else?
         row = self._data.fast_slice(key, 1)
 
-        # ####### ORIGINAL SHUFFLING ##############################
-        shuffle_idx = list(range(row.num_columns))
-        random.shuffle(shuffle_idx)
+        # # ####### ORIGINAL SHUFFLING ##############################
+        # shuffle_idx = list(range(row.num_columns))
+        # random.shuffle(shuffle_idx)
+
+        # tokenized_text = self.tokenizer(shuffled_text, padding=True)
         
         # ######## SHUFFLING ONLY IMPUTED COLUMNS #########################################
         # shuffle_idx_imp = list(range(row.num_columns))[2:5]
@@ -45,31 +49,80 @@ class GReaTDataset(Dataset):
         
         # shuffle_idx = shuffle_idx_tar + shuffle_idx_imp
         # #################################################################################
+        shuffle_idx1 = list(range(row.num_columns))[0:2]
+        shuffle_idx2 = list(range(row.num_columns))[2:5]
 
-        
-        shuffled_text = ", ".join(
+        ###################################################################################
+        shuffled_text1 = ", ".join(
             [
                 "%s is %s"
                 % (row.column_names[i], str(row.columns[i].to_pylist()[0]).strip())
-                for i in shuffle_idx
+                for i in shuffle_idx1
             ]
         )
+        shuffled_text1 = shuffled_text1 + ', '
 
-        tokenized_text = self.tokenizer(shuffled_text, padding=True)
-
-        ##### CHECK INPUTS ############################################################
-        #### check shuffled_text ###########
-        print('\n -------------- DATASET: CHECK TOKENIZER --------------------------------')
-        print(f'\n [{shuffled_text}]')
-        ###################################
-        # print(key, {type(key)}, {key}')
-        # fn        
+        shuffled_text2 = ", ".join(
+            [
+                "%s is %s"
+                % (row.column_names[i], str(row.columns[i].to_pylist()[0]).strip())
+                for i in shuffle_idx2
+            ]
+        )
         
-        tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
-        print(f'\n {len(tokenized_text)}: [{tokenized_text}]')
-        print('\n ------------------------------------------------------------------------')
-        fn
-        #################################################################################
+
+        tokenized_text1 = self.tokenizer.encode(shuffled_text1)
+
+        tokenized_text2 = self.tokenizer.encode(shuffled_text2)
+
+        tokenized_text = BatchEncoding(
+                                {
+                                    'input_ids' : tokenized_text1 + tokenized_text2, 
+                                    'attention_mask' : [1] * len(tokenized_text1) + [0] * len(tokenized_text2), 
+                                    'labels' : [-100] * len(tokenized_text1) + tokenized_text2
+                                }
+                        )
+
+
+        # ###### TRASH ##########################
+        # tokenized_text2 = {key:value for (key,value) in tokenized_text1.items() if key in ['input_ids', 'attention_mask', 'labels']}
+        # tokenized_text2 = BatchEncoding(tokenized_text2)
+        # #######################################
+
+        # ################## CHECK TOKENIZER #############################################################
+        # print('-----------------------------------------------------------------------')
+        # print('shuffled_1:', shuffled_text1)
+        # print('shuffled_2:', shuffled_text2)
+        # print('tokenize_1:', len(tokenized_text1), tokenized_text1)
+        # print('tokenize_2:', len(tokenized_text2), tokenized_text2)
+        # print('type_1:',  type(tokenized_text1))
+        # print('type_2:',  type(tokenized_text2))
+        # print('*********************************')
+        # print('tokenized:', len(tokenized_text['input_ids']), tokenized_text)
+        # print('type:',  type(tokenized_text))
+        # print('-----------------------------------------------------------------------')
+
+        # ################## CHECK FINAL TOKENIZER #############################################################
+        # decoded = self.tokenizer.decode(tokenized_text['input_ids'])
+        # print('decodes:', decoded)
+        # print('encoded:', self.tokenizer.tokenize(decoded))
+        # fn
+        # ################################################################################################
+
+        # ##### CHECK INPUTS FOR ORIGINAL DATASET ################################################################
+        # #### check shuffled_text ###########
+        # print('\n -------------- DATASET: CHECK TOKENIZER --------------------------------')
+        # print(f'\n [{shuffled_text1}]')
+        # print(f'\n [{shuffled_text2}]')
+        # ###################################
+        # # print(key, {type(key)}, {key}')
+        # # fn        
+        
+        # tokenized_text = self.tokenizer.tokenize(shuffled_text1, shuffled_text2, padding=True)
+        # print(f'\n {len(tokenized_text)}: [{tokenized_text}]')
+        # print('\n ------------------------------------------------------------------------')
+        # fn
+        # ####################################################################################      
         
         return tokenized_text
 
@@ -88,6 +141,8 @@ class GReaTDataCollator(DataCollatorWithPadding):
     """
 
     def __call__(self, features: tp.List[tp.Dict[str, tp.Any]]):
+        # print('Collator:', features)
+        # fn
         batch = self.tokenizer.pad(
             features,
             padding=self.padding,
@@ -95,7 +150,9 @@ class GReaTDataCollator(DataCollatorWithPadding):
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
-        batch["labels"] = batch["input_ids"].clone()
+        # batch["labels"] = batch["input_ids"].clone()
+        # print('Collator batch:', batch)
+        # fn
         return batch
 
 
