@@ -23,8 +23,10 @@ class TrainCorpus:
                 row = self.great_ds._data.fast_slice(ii, 1)
                 
                 # ####### ORIGINAL SHUFFLING ##############################
-                shuffle_idx = list(range(row.num_columns))
-                random.shuffle(shuffle_idx)
+                shuffle_idx = list(range(row.num_columns))    
+                # print(shuffle_idx)
+                # fn
+                # random.shuffle(shuffle_idx)
                 
                 shuffled_text = ", ".join(
                     [
@@ -33,6 +35,8 @@ class TrainCorpus:
                         for i in shuffle_idx
                     ]
                 )
+
+                # shuffled_text = str(row.columns[0].to_pylist()[0]).strip() + ', ' + shuffled_text
         
                 texts_list.append(shuffled_text)
 

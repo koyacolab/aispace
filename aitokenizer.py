@@ -32,11 +32,11 @@ class TrainCorpus:
                     [
                         "%s is %s"
                         % (row.column_names[i], str(row.columns[i].to_pylist()[0]).strip())
-                        for i in shuffle_idx[1:]
+                        for i in shuffle_idx
                     ]
                 )
 
-                shuffled_text = str(row.columns[0].to_pylist()[0]).strip() + ', ' + shuffled_text
+                # shuffled_text = str(row.columns[0].to_pylist()[0]).strip() + ', ' + shuffled_text
         
                 texts_list.append(shuffled_text)
 
