@@ -12,6 +12,8 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, AutoConfig, TrainerCallback
 
+from transformers.integrations import WandbCallback
+
 from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup 
 from transformers.optimization import get_cosine_with_hard_restarts_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
 
@@ -63,6 +65,8 @@ from transformers.trainer_utils import (
     set_seed,
     speed_metrics,
 )
+
+from sklearn.model_selection import train_test_split
 
 class GReaT:
     """GReaT Class
@@ -118,23 +122,27 @@ class GReaT:
         self.tiktok = tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tiktok)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.llm)  #, 
+        self.model = AutoModelForCausalLM.from_pretrained(self.llm)      #, 
                                                           # attn_pdrop=0.3,) 
                                                           # embd_pdrop=0.3, 
                                                           # resid_pdrop=0.3, 
                                                           # summary_first_dropout=0.3) #.to(device)
 
-        vocab = self.tokenizer.get_vocab()
-        self.model.resize_token_embeddings(len(vocab))
+        # self.model.resize_token_embeddings( len(self.tokenizer) )
 
-        # #### USE CONFIG TO SET DROPOUTS FOR LAYERS ####################################
+        # ##################################################
+        # vocab = self.tokenizer.get_vocab()
+        # self.model.resize_token_embeddings(len(vocab))
+        # ##################################################
+
+        # #### USE CONFIG TO SET DROPOUTS FOR LAYERS #######
         # config = AutoConfig.from_pretrained(self.llm)
 
         # print('config:')
         # print(config)
         # print('---------------------------------')
         # fn
-        # ###############################################################################
+        # ##################################################
 
 
         if self.efficient_finetuning == "lora":
@@ -368,31 +376,40 @@ class GReaT:
 
             class MyCallback(TrainerCallback):
                 "A callback that prints a message at the beginning of training"
-                def __init__(self, func):
+                def __init__(self, func, imp_data):
                     self.func = func
+                    self.sample_dataset = imp_data
                     super().__init__()
             
                 def on_step_end(self, args, state, control, **kwargs):
-                    ep_list = [x for x in range(1000, state.max_steps, state.max_steps // 10)]
+                    ep_list = [x for x in range(10000, state.max_steps, 10000)]
                     if int(state.global_step) in ep_list and state.epoch > 0:
     
                         print(state.epoch)
                         
-                        to_impute = test_data.copy()
+                        _, to_impute_test = train_test_split( self.sample_dataset, test_size=0.1, random_state=42 )
+    
+                        to_impute_test  = to_impute_test[['PID', 'DOY', 'B02', 'B03', 'B04']].reset_index(drop=True).copy()
+    
+                        to_impute = to_impute_test.copy()
+                        
                         to_impute[['B02', 'B03', 'B04']] = np.nan
                         # display(to_impute)
                         
-                        imputed_data = self.func(df_miss=to_impute, k=1000, max_length=40, temperature=1e-32, device='cuda')
+                        imputed_data = self.func(df_miss=to_impute, k=1000, max_length=44, temperature=1e-32, device='cuda')
                         # display(imputed_data)
     
                         # Extract the values from the specified columns for both dataframes
                         cols = ['B02', 'B03', 'B04']
-                        arr1 = test_data[cols].values
+                        arr1 = to_impute_test[cols].values
                         arr2 = imputed_data[cols].values
     
                         # Calculate L1 and L2 norms for each row
                         l1_norms = np.linalg.norm(arr1 - arr2, ord=1, axis=1)
                         l2_norms = np.linalg.norm(arr1 - arr2, ord=2, axis=1)
+    
+                        L1 = np.sum(l1_norms)/len(l1_norms)
+                        L2 = np.sum(l2_norms)/len(l2_norms)
     
                         print('L1:', np.sum(l1_norms)/len(l1_norms), ', L2:', np.sum(l2_norms)/len(l2_norms))
                     
@@ -406,7 +423,7 @@ class GReaT:
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 optimizers = (self.optimizer, self.lr_scheduler),
-                # callbacks=[MyCallback(self.impute)],
+                callbacks=[MyCallback(func=self.impute, imp_data=test_data)],
                 # compute_metrics = compute_metrics,
                 )
         else:
@@ -421,6 +438,98 @@ class GReaT:
                 tokenizer=self.tokenizer,
                 data_collator=GReaTDataCollator(self.tokenizer),
                 )
+
+        ###### ADD WANDB CALLBACK ###########################################
+        class WandbPredictionProgressCallback(WandbCallback):
+            """Custom WandbCallback to log model predictions during training.
+        
+            This callback logs model predictions and labels to a wandb.Table at each logging step during training.
+            It allows to visualize the model predictions as the training progresses.
+        
+            Attributes:
+                trainer (Trainer): The Hugging Face Trainer instance.
+                tokenizer (AutoTokenizer): The tokenizer associated with the model.
+                sample_dataset (Dataset): A subset of the validation dataset for generating predictions.
+                num_samples (int, optional): Number of samples to select from the validation dataset for generating predictions. Defaults to 100.
+                freq (int, optional): Frequency of logging. Defaults to 2.
+            """
+        
+            def __init__(self, func, trainer, tokenizer, val_dataset, num_samples=100, freq=20):
+                """Initializes the WandbPredictionProgressCallback instance.
+        
+                Args:
+                    trainer (Trainer): The Hugging Face Trainer instance.
+                    tokenizer (AutoTokenizer): The tokenizer associated with the model.
+                    val_dataset (Dataset): The validation dataset.
+                    num_samples (int, optional): Number of samples to select from the validation dataset for generating predictions. Defaults to 100.
+                    freq (int, optional): Frequency of logging. Defaults to 2.
+                """
+                self.func = func
+                super().__init__()
+                self.trainer = trainer
+                self.tokenizer = tokenizer
+                self.sample_dataset = val_dataset
+                self.freq = freq
+
+            def on_evaluate(self, args, state, control, **kwargs):
+                super().on_evaluate(args, state, control, **kwargs)
+                # control the frequency of logging by logging the predictions every `freq` epochs
+                # if state.epoch % self.freq == 0:
+                    # generate predictions
+                    # predictions = self.trainer.predict(self.sample_dataset)
+                    # # decode predictions and labels
+                    # predictions = decode_predictions(self.tokenizer, predictions)
+                    # # add predictions to a wandb.Table
+                    # predictions_df = pd.DataFrame(predictions)
+                    # predictions_df["epoch"] = state.epoch
+                    # records_table = self._wandb.Table(dataframe=predictions_df)
+                    # log the table to wandb
+                ep_list = [x for x in range(10000, state.max_steps, 10000)]
+                if int(state.global_step) in ep_list and state.epoch > 0:
+                    # to_impute = self.sample_dataset #test_data.copy()
+
+                    _, to_impute_test = train_test_split( self.sample_dataset, test_size=0.1, random_state=42 )
+
+                    to_impute_test  = to_impute_test[['PID', 'DOY', 'B02', 'B03', 'B04']].reset_index(drop=True).copy()
+
+                    to_impute = to_impute_test.copy()
+                    
+                    to_impute[['B02', 'B03', 'B04']] = np.nan
+                    # display(to_impute)
+                    
+                    imputed_data = self.func(df_miss=to_impute, k=1000, max_length=44, temperature=1e-32, device='cuda')
+                    # display(imputed_data)
+
+                    # Extract the values from the specified columns for both dataframes
+                    cols = ['B02', 'B03', 'B04']
+                    arr1 = to_impute_test[cols].values
+                    arr2 = imputed_data[cols].values
+
+                    # Calculate L1 and L2 norms for each row
+                    l1_norms = np.linalg.norm(arr1 - arr2, ord=1, axis=1)
+                    l2_norms = np.linalg.norm(arr1 - arr2, ord=2, axis=1)
+
+                    L1 = np.sum(l1_norms)/len(l1_norms)
+                    L2 = np.sum(l2_norms)/len(l2_norms)
+
+                    print('L1:', np.sum(l1_norms)/len(l1_norms), ', L2:', np.sum(l2_norms)/len(l2_norms))
+                    
+                    self._wandb.log({"L1": L1})
+                    self._wandb.log({"L2": L1})
+        #####################################################################
+        # Instantiate the WandbPredictionProgressCallback
+        progress_callback = WandbPredictionProgressCallback(
+            trainer=great_trainer,
+            tokenizer=self.tokenizer,
+            val_dataset=test_data,
+            func = self.impute,
+            # num_samples=10,
+            # freq=20,
+        )
+        
+        # # Add the callback to the trainer
+        great_trainer.add_callback(progress_callback)
+        ####################################################################
 
         # Start training
         logging.info("Start training...")

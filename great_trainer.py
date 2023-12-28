@@ -51,26 +51,26 @@ class GReaTTrainer(Trainer):
     they are needed later!
     """
 
-    # def get_train_dataloader(self) -> DataLoader:
-    #     if self.train_dataset is None:
-    #         raise ValueError("Trainer: training requires a train_dataset.")
+    def get_train_dataloader(self) -> DataLoader:
+        if self.train_dataset is None:
+            raise ValueError("Trainer: training requires a train_dataset.")
 
-    #     data_collator = self.data_collator
-    #     train_dataset = (
-    #         self.train_dataset
-    #     )  # self._remove_unused_columns(self.train_dataset, description="training")
-    #     train_sampler = self._get_train_sampler()
+        data_collator = self.data_collator
+        train_dataset = (
+            self.train_dataset
+        )  # self._remove_unused_columns(self.train_dataset, description="training")
+        train_sampler = self._get_train_sampler()
 
-    #     return DataLoader(
-    #         train_dataset,
-    #         batch_size     = self._train_batch_size,
-    #         sampler        = train_sampler,
-    #         collate_fn     = data_collator,
-    #         drop_last      = self.args.dataloader_drop_last,
-    #         num_workers    = self.args.dataloader_num_workers,
-    #         pin_memory     = self.args.dataloader_pin_memory,
-    #         worker_init_fn = _seed_worker,
-    #     )
+        return DataLoader(
+            train_dataset,
+            batch_size     = self._train_batch_size,
+            sampler        = train_sampler,
+            collate_fn     = data_collator,
+            drop_last      = self.args.dataloader_drop_last,
+            num_workers    = self.args.dataloader_num_workers,
+            pin_memory     = self.args.dataloader_pin_memory,
+            worker_init_fn = _seed_worker,
+        )
 
     # def get_eval_dataloader(self, eval_dataset: Optional[Dataset] = None) -> DataLoader:
     #     if self.eval_dataset is None:
@@ -146,6 +146,8 @@ class GReaTTrainer(Trainer):
         print('compute_loss inputs.keys:', inputs.keys())
         # print('compute_loss **inputs:', **inputs)
         print('inputs.inputs_ids:', inputs.input_ids)
+        print('inputs.attention_mask:', inputs.attention_mask)
+        print('inputs.labels:', inputs.labels)
         decoded = self.tokenizer.decode(inputs.input_ids[0])
         print('decoded inputs:', decoded)
         ###############################################################      
@@ -160,17 +162,17 @@ class GReaTTrainer(Trainer):
         print('outputs: ', outputs.keys())
         print('---------------------------')
         # print('outputs.past_key_values:', outputs.past_key_values[0])
-        print('---------------------------')
+        # print('---------------------------')
         logits = outputs.logits[0].cpu().detach().numpy()
-        print('outputs.logits:', logits)
+        # print('outputs.logits:', logits)
         predictions = np.argmax(logits, axis=-1)
         print('predictions:', predictions)
         print(self.tokenizer.decode(predictions))
 
-        print('----------- model ------------------------')
-        print(model)
+        # print('----------- model ------------------------')
+        # print(model)
         
-        fn
+        # fn
         ###############################################################
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
@@ -185,8 +187,10 @@ class GReaTTrainer(Trainer):
                 model_name = unwrapped_model._get_name()
             if model_name in MODEL_FOR_CAUSAL_LM_MAPPING_NAMES.values():
                 loss = self.label_smoother(outputs, labels, shift_labels=True)
+                print('loss 1:', loss)
             else:
                 loss = self.label_smoother(outputs, labels)
+                print('loss 2:', loss)
         else:
             if isinstance(outputs, dict) and "loss" not in outputs:
                 raise ValueError(
@@ -195,6 +199,10 @@ class GReaTTrainer(Trainer):
                 )
             # We don't use .loss here since the model may return tuples instead of ModelOutput.
             loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+            print('loss 3:', loss)
+
+        print('loss:', loss)
+        fn
 
         return (loss, outputs) if return_outputs else loss
         
