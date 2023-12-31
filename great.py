@@ -198,9 +198,11 @@ class GReaT:
         self,
         data: tp.Union[pd.DataFrame, np.ndarray],
         test_data: tp.Union[pd.DataFrame, np.ndarray],
+        # inf_data: tp.Union[pd.DataFrame, np.ndarray],
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
         resume_from_checkpoint: tp.Union[bool, str] = False,
+        # inf_data: tp.Union[pd.DataFrame, np.ndarray],
         # optimizer = '',
         # lr_fit = 2e-5, 
         # LR_SCHEDULER_FIT = 'cosine',
@@ -382,7 +384,7 @@ class GReaT:
                     super().__init__()
             
                 def on_step_end(self, args, state, control, **kwargs):
-                    ep_list = [x for x in range(50000, state.max_steps, 10000)]
+                    ep_list = [x for x in range(10000, state.max_steps, 10000)]
                     if int(state.global_step) in ep_list and state.epoch > 0:
     
                         print(state.epoch)
@@ -484,11 +486,12 @@ class GReaT:
                     # predictions_df["epoch"] = state.epoch
                     # records_table = self._wandb.Table(dataframe=predictions_df)
                     # log the table to wandb
-                ep_list = [x for x in range(50000, state.max_steps, 10000)]
+                ###### TEST METRICS FOR RANDOM TEST DATASET #############################################################
+                ep_list = [x for x in range(10000, state.max_steps, 10000)]
                 if int(state.global_step) in ep_list and state.epoch > 0:
                     # to_impute = self.sample_dataset #test_data.copy()
 
-                    _, to_impute_test = train_test_split( self.sample_dataset, test_size=0.1, random_state=42 )
+                    _, to_impute_test = train_test_split( self.sample_dataset, test_size=0.1, random_state=44 )
 
                     to_impute_test  = to_impute_test[['PID', 'DOY', 'B02', 'B03', 'B04']].reset_index(drop=True).copy()
 
@@ -519,6 +522,11 @@ class GReaT:
                     
                     self._wandb.log({"L1": L1})
                     self._wandb.log({"L2": L2})
+                ##########################################################################################
+                # ###### TEST METRICS FOR RANDOM TEST DATASET #############################################################
+                # ep_list = [x for x in range(150000, state.max_steps, 100000)]
+                # if int(state.global_step) in ep_list and state.epoch > 0:
+                #     print()
         #####################################################################
         # Instantiate the WandbPredictionProgressCallback
         progress_callback = WandbPredictionProgressCallback(
@@ -534,6 +542,7 @@ class GReaT:
         great_trainer.add_callback(progress_callback)
         ####################################################################
 
+        #### START TRAINING ################################################
         # Start training
         logging.info("Start training...")
         great_trainer.train(resume_from_checkpoint=resume_from_checkpoint)
