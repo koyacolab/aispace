@@ -442,7 +442,7 @@ class HLSDataSet:
         # test_data = test_data.sort_values(by=['Y', 'X', 'DOY'])
         return self.inference_data
 
-    def _inference_imshow(self,):
+    def _inference_imshow(self, filename='inference.jpg'):
         doys = self.inference_data['DOY'].unique()
 
         # self.impute_data = pd.concat([self.impute_data, self.nan_data], axis=0)
@@ -455,9 +455,9 @@ class HLSDataSet:
             tr_df  = test_data[ test_data['DOY'] == int(doy)].copy()
             tr_df2 = orig_data[ orig_data['DOY'] == int(doy)].copy()
             # otput_data_list.append(tr_df)
-            self._image_inference(tr_df2, tr_df)
+            self._image_inference(tr_df2, tr_df, filename)
 
-    def _image_inference(self, input1, input2):
+    def _image_inference(self, input1, input2, filename):
         # BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
         # FMSK_LIST = ['cirrus', 'cloud', 'adj_cloud', 'cloud_shadow', 'snow_ice', 'water', 'aero' ]
         # ANG_LIST = ['SAA', 'SZA', 'VAA', 'VZA',]
@@ -675,3 +675,8 @@ class HLSDataSet:
         #     axes[ii].imshow(image_rgb_list[ii]) #, cmap='gray')  # You can specify a colormap
         plt.tight_layout()
         plt.show()
+
+        plt.savefig(filename)
+
+        return filename
+

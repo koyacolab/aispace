@@ -130,10 +130,10 @@ class GReaT:
 
         self.model.resize_token_embeddings( len(self.tokenizer) )
 
-        # ##################################################
-        # vocab = self.tokenizer.get_vocab()
-        # self.model.resize_token_embeddings(len(vocab))
-        # ##################################################
+        # # ##################################################
+        # # vocab = self.tokenizer.get_vocab()
+        # # self.model.resize_token_embeddings(len(vocab))
+        # # ##################################################
 
         # #### USE CONFIG TO SET DROPOUTS FOR LAYERS #######
         # config = AutoConfig.from_pretrained(self.llm)
@@ -198,6 +198,7 @@ class GReaT:
         self,
         data: tp.Union[pd.DataFrame, np.ndarray],
         test_data: tp.Union[pd.DataFrame, np.ndarray],
+        # hls_data, 
         # inf_data: tp.Union[pd.DataFrame, np.ndarray],
         column_names: tp.Optional[tp.List[str]] = None,
         conditional_col: tp.Optional[str] = None,
@@ -526,7 +527,22 @@ class GReaT:
                 # ###### TEST METRICS FOR RANDOM TEST DATASET #############################################################
                 # ep_list = [x for x in range(150000, state.max_steps, 100000)]
                 # if int(state.global_step) in ep_list and state.epoch > 0:
-                #     print()
+                #     hls_data = HLSInference(table_dtype = int)
+                #     hls_data.clip_dataset(x1=50.0, y1=50.0, x2=100.0, y2=100.0)
+                #     doys = [211,]
+                #     _ = hls_data._get_data_doys(doys = doys, SHOW=True)
+                #     _, _ = hls_data._nan_9999()
+                #     _, _ = hls_data._set_clear_cloud()
+                #     _, _, _, _ = hls_data._set_train_columns_name()
+                #     _, _ = hls_data._set_train_test_data(doy=211.0, x1=45.0, y1=45.0, x2=50.0, y2=50.0, for_show_nan=False)
+                #     _ = hls_data._to_impute()
+                #     hls_data._inference_train_test_data()
+                #     recovered_data = hls_data._impute(model=self.model, k=10000, max_length=44, temperature=1e-32)
+                #     hls_data._set_inference_recovered()
+                #     hls_data._inference_imshow()
+                #     fn
+                #     # print()
+        
         #####################################################################
         # Instantiate the WandbPredictionProgressCallback
         progress_callback = WandbPredictionProgressCallback(
