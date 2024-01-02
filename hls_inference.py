@@ -1,5 +1,9 @@
 from hlsdataset import HLSDataSet
 
+import numpy as np
+
+import pandas as pd
+
 class HLSInference(HLSDataSet):
     def __init__(self, doy=211, table_dtype = 'float16', path='./aispace/data/L8-100x100'):
         super().__init__(table_dtype = table_dtype, path=path)
@@ -34,13 +38,14 @@ class HLSInference(HLSDataSet):
 
         # print(f'to impute data:')
         # display(self.nan_data_doy)
-        print(f'to impute data:')
-        display(self.nan_data_doy)
-        display(self.data_doy)
+        # ########### PRINT ###################################
+        # print(f'to impute data:')
+        # display(self.nan_data_doy)
+        # display(self.data_doy)
 
         # fn         
 
-        print(f'NumPy version:{np.__version__}')
+        # print(f'NumPy version:{np.__version__}')
         np.float = float
 
         # Get the DataFrame with columns in reverse order
@@ -49,14 +54,21 @@ class HLSInference(HLSDataSet):
         ######################### ORIGINAL ##############################################################
         _impute = self.nan_data_doy[columns_impute].copy()
         # _impute[['DOY', 'PID']] = _impute[['DOY', 'PID']].astype(int)
-        print('IMPUTE:')
-        display(_impute)
+
+
+        # ################# PRINT ##########################
+        # print('IMPUTE:')
+        # display(_impute)
+        
         # self.imputed_data = pd.read_csv('imputed.csv')
-        self.imputed_data = model.impute(_impute, k=k, max_length=max_length, temperature=temperature, device=device)
+        # self.imputed_data = model.impute(_impute, k=k, max_length=max_length, temperature=temperature, device=device)
+        self.imputed_data = model(_impute, k=k, max_length=max_length, temperature=temperature, device=device)
         self.imputed_data.to_csv('imputed2.csv')
 
-        print('IMPUTED:')
-        display(self.imputed_data)
+        # #### PRINT ############################
+        # print('IMPUTED:')
+        # display(self.imputed_data)
+        
         #########################################################################################
         # ################################## FOR BANDS in ONE BAND#####################################################
         # # _impute = self.nan_data_doy[columns_impute].copy()
@@ -138,11 +150,12 @@ class HLSInference(HLSDataSet):
         self.recovered_data = pd.concat([self.imputed_data, self.data_doy], axis=0)
         self.recovered_data = self.recovered_data.reset_index(drop=True)
 
-        print('imputed_data')
-        display(self.imputed_data)
+        # #### PRINT ###############################
+        # print('imputed_data')
+        # display(self.imputed_data)
 
-        print('recovered_data')
-        display(self.recovered_data)
+        # print('recovered_data')
+        # display(self.recovered_data)
 
         return self.recovered_data
 

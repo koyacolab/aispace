@@ -57,7 +57,7 @@ class HLSDataSet:
         # Add a new column 'PID' or 'Point_ID' with unique IDs for each point
         self.input_data['PID'] = self.input_data.groupby(['X', 'Y']).ngroup()
 
-        print('PIDs is ', max(sorted(self.input_data['PID'].unique())))
+        # print('PIDs is ', max(sorted(self.input_data['PID'].unique())))
 
         self.input_data = self.input_data.reset_index(drop=True)
         
@@ -344,7 +344,7 @@ class HLSDataSet:
         
         return self.clear_data, self.cloud_data
 
-    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'X', 'Y', 'DOY', 'PID']):
+    def _set_train_columns_name(self, final_columns_list = ['B02', 'B03', 'B04', 'B05', 'NDVI', 'X', 'Y', 'DOY', 'PID'], SHOW = True):
 
         before_list = self.data.columns.to_list()
         
@@ -353,8 +353,9 @@ class HLSDataSet:
         self.clear_data = self.clear_data[final_columns_list].astype(self.table_dtype, errors='ignore')
         self.cloud_data = self.cloud_data[final_columns_list].astype(self.table_dtype, errors='ignore')
         # train_data.columns = final_columns_list
-        
-        print(f'Change columns list: {before_list}->{self.data.columns.to_list()}')
+
+        if SHOW == True:
+            print(f'Change columns list: {before_list}->{self.data.columns.to_list()}')
 
         self.data = self.data.reset_index(drop=True)
         self.nan_data = self.nan_data.reset_index(drop=True)
@@ -410,16 +411,17 @@ class HLSDataSet:
 
         return self.train_data, self.test_data
 
-    def _to_impute(self,):
+    def _to_impute(self, SHOW = True):
         self.to_impute = self.cloud_data.copy()
         # display(self.impute_data)
         self.to_impute.loc[:,['B02', 'B03', 'B04', 'B05', 'NDVI']] = np.NaN
 
         self.to_impute = pd.concat([self.to_impute, self.nan_data], axis=0).copy()
         self.imputed_data = self.to_impute
-        
-        print('to_impute:')
-        display(self.to_impute)
+
+        if SHOW == True:
+            print('to_impute:')
+            display(self.to_impute)
 
         return self.to_impute
 
@@ -603,7 +605,8 @@ class HLSDataSet:
                      
             image_plt = image  # (image * 255).astype(np.uint8)
 
-            print('image:', image.shape, image)
+            # #### PRINT ##############
+            # print('image:', image.shape, image)
             # fn
 
             ############################################

@@ -68,6 +68,10 @@ from transformers.trainer_utils import (
 
 from sklearn.model_selection import train_test_split
 
+from hls_inference import HLSInference
+
+import numpy as np
+
 class GReaT:
     """GReaT Class
 
@@ -524,20 +528,21 @@ class GReaT:
                     self._wandb.log({"L1": L1})
                     self._wandb.log({"L2": L2})
                 ##########################################################################################
-                # ###### TEST METRICS FOR RANDOM TEST DATASET #############################################################
-                # ep_list = [x for x in range(150000, state.max_steps, 100000)]
-                # if int(state.global_step) in ep_list and state.epoch > 0:
+                # ###### TEST METRICS FOR INFERENCE TEST DATASET #############################################################
+                # ep_list_2 = [x for x in range(1000, state.max_steps, 10)]
+                # # print(ep_list_2)
+                # if int(state.global_step) in ep_list_2 and state.epoch > 0:
                 #     hls_data = HLSInference(table_dtype = int)
                 #     hls_data.clip_dataset(x1=50.0, y1=50.0, x2=100.0, y2=100.0)
                 #     doys = [211,]
-                #     _ = hls_data._get_data_doys(doys = doys, SHOW=True)
+                #     _ = hls_data._get_data_doys(doys = doys, SHOW=False)
                 #     _, _ = hls_data._nan_9999()
                 #     _, _ = hls_data._set_clear_cloud()
-                #     _, _, _, _ = hls_data._set_train_columns_name()
+                #     _, _, _, _ = hls_data._set_train_columns_name(SHOW = False)
                 #     _, _ = hls_data._set_train_test_data(doy=211.0, x1=45.0, y1=45.0, x2=50.0, y2=50.0, for_show_nan=False)
-                #     _ = hls_data._to_impute()
+                #     _ = hls_data._to_impute(SHOW = False)
                 #     hls_data._inference_train_test_data()
-                #     recovered_data = hls_data._impute(model=self.model, k=10000, max_length=44, temperature=1e-32)
+                #     recovered_data = hls_data._impute(model=self.func, k=10000, max_length=44, temperature=1e-32)
                 #     hls_data._set_inference_recovered()
                 #     hls_data._inference_imshow()
                 #     fn
