@@ -105,8 +105,9 @@ class HLSInference(HLSDataSet):
         # self.imputed_data = pd.read_csv(imputed_file)
         # self.imputed_data = self.nan_data_doy.copy()
 
-        print(self.nan_data_doy.columns, self.imputed_data.columns)
-        print(self.nan_data_doy.shape, self.imputed_data.shape)
+        #### PRINT TO IMPUTE DATA #######################################
+        # print(self.nan_data_doy.columns, self.imputed_data.columns)
+        # print(self.nan_data_doy.shape, self.imputed_data.shape)
 
         # Merge the dataframes by X and Y columns and replace B3 in df1 with B3 from df2
         merged_df = self.nan_data_doy.merge(self.imputed_data, on=['PID', 'DOY'], suffixes=('', '_df2'), how='left')  
@@ -121,7 +122,8 @@ class HLSInference(HLSDataSet):
         merged_df = merged_df.drop('B04_df2', axis=1)
 
         self.imputed_data = merged_df.copy()
-        
+
+        #### PRINT IMPUTED DATA #######################################
         print(self.nan_data_doy.columns, self.imputed_data.columns)
         print(self.nan_data_doy.shape, self.imputed_data.shape)
         # fn

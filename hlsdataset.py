@@ -450,14 +450,17 @@ class HLSDataSet:
         # self.impute_data = pd.concat([self.impute_data, self.nan_data], axis=0)
         test_data = self.inference_data
         orig_data = self.data
-        
+
+        img_list = []
         for doy in doys:
             # data = _get_hls(doy)
             # croped_data = _crop_data(data, doy)
             tr_df  = test_data[ test_data['DOY'] == int(doy)].copy()
             tr_df2 = orig_data[ orig_data['DOY'] == int(doy)].copy()
             # otput_data_list.append(tr_df)
-            self._image_inference(tr_df2, tr_df, filename)
+            img_list = self._image_inference(tr_df2, tr_df, filename)
+
+        return img_list
 
     def _image_inference(self, input1, input2, filename):
         # BND_LIST = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11']
@@ -512,7 +515,7 @@ class HLSDataSet:
             def generalized_normalization(band, rgb):
                 # Apply your normalization method here
                 # Example: Stretch and scale values to 0-255
-                band = np.ma.array (band, mask=np.isnan(band))
+                band = np.ma.array(band, mask=np.isnan(band))
 
                 if self.REFLECT == False:
                 ### FOR HLS #################
@@ -646,7 +649,8 @@ class HLSDataSet:
             return image[0,:,:]
         # fn
 
-        hist = _get_hist(input2, bnd_list=['B03'])
+        #### UNCOMMENT FOR SHOW DATA HISTOGRAM ############
+        # hist = _get_hist(input2, bnd_list=['B03'])
     
         # image_nan = _get_img_nan(input, bnd_list=['B02', 'B03', 'B04'])
         image_rgb   = _get_img_rgb(input1, bnd_list=['B02', 'B03', 'B04'])
@@ -679,7 +683,7 @@ class HLSDataSet:
         plt.tight_layout()
         plt.show()
 
-        plt.savefig(filename)
+        # plt.savefig(filename)
 
-        return filename
+        return [ image_rgb, image_rgb2 ]
 

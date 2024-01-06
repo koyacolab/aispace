@@ -505,8 +505,30 @@ class GReaT:
                     to_impute[['B02', 'B03', 'B04']] = np.nan
                     # display(to_impute)
                     
-                    imputed_data = self.func(df_miss=to_impute, k=1000, max_length=42, temperature=1e-32, device='cuda')
+                    imputed_data = self.func(df_miss=to_impute, k=1000, max_length=36, temperature=1e-32, device='cuda')
                     # display(imputed_data)
+
+                    #### TEST NaNs: Set B02 as NaN in a random row
+                    # random_row_index = np.random.choice(imputed_data.index)
+                    # imputed_data.at[random_row_index, 'B02'] = np.nan
+
+                    # imputed_data = imputed_data.dropna()
+
+                    if len(imputed_data) != len(to_impute_test):
+                        print('imputed_data != nan_data_doy: ', len(to_impute_test) - len(imputed_data))
+                        # Use the merge function with indicator=True
+                        original_df = to_impute_test
+                        subset_df = imputed_data
+            
+                        merged_df = pd.merge(original_df, subset_df, on=['PID', 'DOY'], how='left', indicator=True)
+            
+                        # Find the rows in original_df that are not in subset_df
+                        missing_rows = original_df[merged_df['_merge'] == 'left_only']
+            
+                        # Display the missing rows
+                        # display(missing_rows)
+            
+                        imputed_data = pd.concat([imputed_data, missing_rows], axis=0)
 
                     # Extract the values from the specified columns for both dataframes
                     cols = ['B02', 'B03', 'B04']
@@ -529,7 +551,7 @@ class GReaT:
                     self._wandb.log({"L2": L2})
                 ##########################################################################################
                 # ###### TEST METRICS FOR INFERENCE TEST DATASET #############################################################
-                # ep_list_2 = [x for x in range(1000, state.max_steps, 10)]
+                # ep_list_2 = [x for x in range(100000, state.max_steps, 100000)]
                 # # print(ep_list_2)
                 # if int(state.global_step) in ep_list_2 and state.epoch > 0:
                 #     hls_data = HLSInference(table_dtype = int)
@@ -544,8 +566,17 @@ class GReaT:
                 #     hls_data._inference_train_test_data()
                 #     recovered_data = hls_data._impute(model=self.func, k=10000, max_length=44, temperature=1e-32)
                 #     hls_data._set_inference_recovered()
-                #     hls_data._inference_imshow()
-                #     fn
+                #     img_list = hls_data._inference_imshow()
+
+                #     # print('img_list:', type(img_list[0]), img_list[0].shape)
+                    
+                #     # images = self._wandb.Image(img_list[0], caption="original")
+                #     # self._wandb.log({"original": images})
+                #     # images = self._wandb.Image(img_list[1], caption="imputed")
+                #     # self._wandb.log({"imputed": images})
+
+
+                #     # fn
                 #     # print()
         
         #####################################################################
@@ -626,7 +657,7 @@ class GReaT:
                 input_ids=torch.unsqueeze(start_token, 0),
                 max_length=max_length,
                 do_sample=True,
-                top_k=0,
+                # top_k=0,  
                 temperature=temperature,
                 pad_token_id=50256,
             )
@@ -715,9 +746,9 @@ class GReaT:
                     starting_prompts = _partial_df_to_promts(df_curr)
 
                     # # ##########################################################
-                    # # print("Number of missing values: ",  num_attrs_missing)
-                    # # display('df_miss:', df_miss)
-                    # # display('df_curr:', df_curr)
+                    # print("Number of missing values: ",  num_attrs_missing)
+                    # display('df_miss:', df_miss)
+                    # display('df_curr:', df_curr)
                     # print('starting_prompts:', starting_prompts)
                     # # ##########################################################
                     
@@ -737,6 +768,7 @@ class GReaT:
                             df_curr[i_num_cols], errors="coerce"
                         )
                     df_curr[self.num_cols] = df_curr[self.num_cols].astype(np.float)
+                    # df_curr[self.num_cols] = df_curr[self.num_cols].astype(int)
 
                     # Check for missing values
                     nans = df_curr.isna()
@@ -745,7 +777,15 @@ class GReaT:
                         df_list.append(df_curr.set_index(org_index))
                     else:
                         retries += 1
+                        ############
+                        print('retries starting_prompts:', starting_prompts)
+                        display('retries predict:', df_curr)
+                        ############
                     if retries == max_retries:
+                        ############
+                        print('starting_prompts:', starting_prompts)
+                        display('predict:', df_curr)
+                        ############
                         warnings.warn("Max retries reached.")
                         break
                 index += 1
