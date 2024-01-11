@@ -34,3 +34,5 @@ Results,
 
 Conclusions and next steps:
 
+Autoregressive Language Models such as GPT-2 utilize causal from the left to the right. Autoregressive approaches are preferable for generating long sequences (for example, entire documents), but since such causal models only condition on previous tokens, they cannot be applied to text-infilling tasks and cannot profit from MLM pre-training. 
+
