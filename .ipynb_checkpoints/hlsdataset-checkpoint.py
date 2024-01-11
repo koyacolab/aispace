@@ -674,8 +674,8 @@ class HLSDataSet:
         axes = axes.ravel()
         # print(image_rgb_list[0].shape)
         axes[0].imshow(image_rgb_list[0])
-        axes[1].imshow(image_rgb_list[1], cmap=plt.cm.summer)
-        axes[2].imshow(image_rgb_list[2])
+        axes[2].imshow(image_rgb_list[1], cmap=plt.cm.summer)
+        axes[1].imshow(image_rgb_list[2])
         axes[3].imshow(image_rgb_list[3], cmap=plt.cm.summer)
         # # Loop through the images and plot them
         # for ii in range(1,len(image_rgb_list)):

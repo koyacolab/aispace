@@ -72,6 +72,8 @@ from hls_inference import HLSInference
 
 import numpy as np
 
+from PIL import Image as im 
+
 class GReaT:
     """GReaT Class
 
@@ -284,8 +286,9 @@ class GReaT:
                 total_train_steps = ((len(data) // self.batch_size) + 1) * self.epochs
             else:
                 total_train_steps = self.max_steps
+                epochs = total_train_steps // ((len(data) // self.batch_size) + 1)
                 
-            print('total_train_steps calculated:', total_train_steps, len(data), self.batch_size)
+            print(f'total_train_steps calculated: step={total_train_steps}, epochs={epochs}, len(data)={len(data)}, batch_size={self.batch_size}')
             print('warmup_steps:', self.train_hyperparameters['warmup_steps'])
 
             #### SET 2nd ORDER OPTIMIZER ##############################
@@ -496,7 +499,7 @@ class GReaT:
                 if int(state.global_step) in ep_list and state.epoch > 0:
                     # to_impute = self.sample_dataset #test_data.copy()
 
-                    _, to_impute_test = train_test_split( self.sample_dataset, test_size=0.1, random_state=44 )
+                    _, to_impute_test = train_test_split( self.sample_dataset, test_size=0.2 )
 
                     to_impute_test  = to_impute_test[['PID', 'DOY', 'B02', 'B03', 'B04']].reset_index(drop=True).copy()
 
@@ -505,7 +508,7 @@ class GReaT:
                     to_impute[['B02', 'B03', 'B04']] = np.nan
                     # display(to_impute)
                     
-                    imputed_data = self.func(df_miss=to_impute, k=1000, max_length=36, temperature=1e-32, device='cuda')
+                    imputed_data = self.func(df_miss=to_impute, k=1000, max_length=33, temperature=1e-32, device='cuda')
                     # display(imputed_data)
 
                     #### TEST NaNs: Set B02 as NaN in a random row
@@ -551,33 +554,42 @@ class GReaT:
                     self._wandb.log({"L2": L2})
                 ##########################################################################################
                 # ###### TEST METRICS FOR INFERENCE TEST DATASET #############################################################
-                # ep_list_2 = [x for x in range(100000, state.max_steps, 100000)]
+                # ep_list_2 = [x for x in range(1000, state.max_steps, 100000)]
                 # # print(ep_list_2)
                 # if int(state.global_step) in ep_list_2 and state.epoch > 0:
                 #     hls_data = HLSInference(table_dtype = int)
                 #     hls_data.clip_dataset(x1=50.0, y1=50.0, x2=100.0, y2=100.0)
                 #     doys = [211,]
-                #     _ = hls_data._get_data_doys(doys = doys, SHOW=False)
+                #     _ = hls_data._get_data_doys(doys = doys, SHOW = False)
                 #     _, _ = hls_data._nan_9999()
                 #     _, _ = hls_data._set_clear_cloud()
                 #     _, _, _, _ = hls_data._set_train_columns_name(SHOW = False)
                 #     _, _ = hls_data._set_train_test_data(doy=211.0, x1=45.0, y1=45.0, x2=50.0, y2=50.0, for_show_nan=False)
                 #     _ = hls_data._to_impute(SHOW = False)
                 #     hls_data._inference_train_test_data()
-                #     recovered_data = hls_data._impute(model=self.func, k=10000, max_length=44, temperature=1e-32)
+                #     train_columns_list = ['PID', 'DOY', 'B02', 'B03', 'B04', ]
+                #     recovered_data = hls_data._impute(model=self.func, columns_impute=train_columns_list, k=10000, max_length=36, temperature=1e-32)
                 #     hls_data._set_inference_recovered()
                 #     img_list = hls_data._inference_imshow()
 
                 #     # print('img_list:', type(img_list[0]), img_list[0].shape)
                     
-                #     # images = self._wandb.Image(img_list[0], caption="original")
+                #     images = self._wandb.Image(img_list[0], caption="original")
+                #     print('images:', type(images), type(img_list[1]), img_list[1].shape)
+
+                #     nr, nc,  _= img_list[1].shape
+                #     shrinkFactor = 5
+                #     img_pil = im.fromarray(img_list[1]) 
+                #     img_pil = img_pil.resize((round(nc*shrinkFactor),round(nr*shrinkFactor)))
+                #     # img_resized = np.array(img_pil)
+                #     # saving the final output  
+                #     # as a PNG file 
+                #     img_pil.save(f'{int(state.global_step)}_pic.png') 
                 #     # self._wandb.log({"original": images})
                 #     # images = self._wandb.Image(img_list[1], caption="imputed")
                 #     # self._wandb.log({"imputed": images})
-
-
-                #     # fn
-                #     # print()
+                #     fn
+                # #     # print()
         
         #####################################################################
         # Instantiate the WandbPredictionProgressCallback
@@ -778,15 +790,15 @@ class GReaT:
                     else:
                         retries += 1
                         ############
-                        print('retries starting_prompts:', starting_prompts)
+                        print(f'retries starting_prompts: {retries} : {starting_prompts}')
                         display('retries predict:', df_curr)
                         ############
                     if retries == max_retries:
                         ############
-                        print('starting_prompts:', starting_prompts)
+                        print('Max retries starting_prompts:', starting_prompts)
                         display('predict:', df_curr)
                         ############
-                        warnings.warn("Max retries reached.")
+                        warnings.warn(" reached.")
                         break
                 index += 1
                 pbar.update(1)

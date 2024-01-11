@@ -35,7 +35,7 @@ class GReaTDataset(Dataset):
 
         # ####### ORIGINAL SHUFFLING ##############################
         shuffle_idx = list(range(row.num_columns))
-        random.shuffle(shuffle_idx)
+        # random.shuffle(shuffle_idx)
         
         # ######## SHUFFLING ONLY IMPUTED COLUMNS #########################################
         # shuffle_idx_imp = list(range(row.num_columns))[2:5]
@@ -69,20 +69,20 @@ class GReaTDataset(Dataset):
         # tokenized_text = self.tokenizer(shuffled_text1, shuffled_text2, padding=True)
         # print(tokenized_text)
 
-        ##### CHECK INPUTS ################################################################
-        #### check shuffled_text ###########
-        print('\n -------------- DATASET: CHECK TOKENIZER --------------------------------')
-        print(f'\n [{shuffled_text}]')
-        # print(f'\n [{shuffled_text2}]')
-        ###################################
-        # print(key, {type(key)}, {key}')
-        # fn        
+        # ##### CHECK INPUTS ################################################################
+        # #### check shuffled_text ###########
+        # print('\n -------------- DATASET: CHECK TOKENIZER --------------------------------')
+        # print(f'\n [{shuffled_text}]')
+        # # print(f'\n [{shuffled_text2}]')
+        # ###################################
+        # # print(key, {type(key)}, {key}')
+        # # fn        
         
-        tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
-        print(f'\n {len(tokenized_text)}: [{tokenized_text}]')
-        print('\n ------------------------------------------------------------------------')
-        fn
-        ####################################################################################      
+        # tokenized_text = self.tokenizer.tokenize(shuffled_text, padding=True)
+        # print(f'\n {len(tokenized_text)}: [{tokenized_text}]')
+        # print('\n ------------------------------------------------------------------------')
+        # fn
+        # ####################################################################################      
         
         return tokenized_text
 

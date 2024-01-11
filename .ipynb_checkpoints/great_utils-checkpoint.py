@@ -153,9 +153,53 @@ def _encode_row_partial(row, shuffle=True):
 def _get_random_missing(row):
     """Return a random missing column or None if all columns are filled."""
     nans = list(row[pd.isna(row)].index)
-    return nans[0] if len(nans) > 0 else None
+    # return nans[0] if len(nans) > 0 else None
     #### original return #################
-    # return np.random.choice(nans) if len(nans) > 0 else None
+    return np.random.choice(nans) if len(nans) > 0 else None
+
+def _partial_df_to_promts(partial_df: pd.DataFrame):
+    """Convert DataFrame with missingvalues to a list of starting promts for GReaT
+        Args:
+        partial_df: Pandas DataFrame to be imputed where missing values are encoded by NaN.
+
+    Returns:
+        List of strings with the starting prompt for each sample.
+    """
+    # #######################################
+    # print('partial_df:')
+    # display(partial_df)
+    # #######################################
+    
+    encoder = lambda x: _encode_row_partial(x, shuffle=False)
+    res_encode = list(partial_df.apply(encoder, axis=1))
+    res_first = list(partial_df.apply(_get_random_missing, axis=1))
+
+    # #########################################################
+    # print('_partial_df_to_promts, res_encode:', res_encode)
+    # print('_partial_df_to_promts, res_encode:', res_first)
+    # # fn
+    # #########################################################
+    
+
+    # #### ORIGINAL STARTING PROMT ###########################################################
+    # Edge case: all values are missing, will return empty string which is not supported.
+    # Use first attribute as starting prompt.
+    # default_promt = partial_df.columns[0] + " is "
+    # res = [
+    #     ((enc + ", ") if len(enc) > 0 else "")
+    #     + (fst + " is" if fst is not None else "")
+    #     for enc, fst in zip(res_encode, res_first)
+    # ]
+    # ########################################################################################
+
+    res = [
+    ((enc + ", ") if len(enc) > 0 else "")
+    + (fst + " is" if fst is not None else "")
+    for enc, fst in zip(res_encode, res_first)
+    ]
+
+    # print('_partial_df_to_promts, res_output:', res)
+    return res
 
 
 def _original_partial_df_to_promts(partial_df: pd.DataFrame):
@@ -194,48 +238,7 @@ def _original_partial_df_to_promts(partial_df: pd.DataFrame):
     # print('_partial_df_to_promts, res_output:', res)
     return res
 
-def _partial_df_to_promts(partial_df: pd.DataFrame):
-    """Convert DataFrame with missingvalues to a list of starting promts for GReaT
-        Args:
-        partial_df: Pandas DataFrame to be imputed where missing values are encoded by NaN.
 
-    Returns:
-        List of strings with the starting prompt for each sample.
-    """
-    # #######################################
-    # print('partial_df:')
-    # display(partial_df)
-    # #######################################
-    
-    encoder = lambda x: _encode_row_partial(x, shuffle=False)
-    res_encode = list(partial_df.apply(encoder, axis=1))
-    res_first = list(partial_df.apply(_get_random_missing, axis=1))
-
-    # #########################################################
-    # print('_partial_df_to_promts, res_encode:', res_encode)
-    # print('_partial_df_to_promts, res_encode:', res_first)
-    # # fn
-    # #########################################################
-    
-
-    #### ORIGINAL STARTING PROMT ###########################################################
-    # Edge case: all values are missing, will return empty string which is not supported.
-    # Use first attribute as starting prompt.
-    # default_promt = partial_df.columns[0] + " is "
-    # res = [
-    #     ((enc + ", ") if len(enc) > 0 else "")
-    #     + (fst + " is" if fst is not None else "")
-    #     for enc, fst in zip(res_encode, res_first)
-    # ]
-
-    res = [
-    ((enc + ", ") if len(enc) > 0 else "")
-    + (fst + " is" if fst is not None else "")
-    for enc, fst in zip(res_encode, res_first)
-    ]
-
-    # print('_partial_df_to_promts, res_output:', res)
-    return res
 
 
 class bcolors:

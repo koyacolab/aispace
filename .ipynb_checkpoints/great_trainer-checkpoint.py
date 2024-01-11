@@ -95,7 +95,7 @@ class GReaTTrainer(Trainer):
 
 
 ######################### CUSTOM TRAINING STEP ####################################################################
-    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+    def Atraining_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
         """
         Perform a training step on a batch of inputs.
 
@@ -135,7 +135,7 @@ class GReaTTrainer(Trainer):
         return loss.detach() / self.args.gradient_accumulation_steps
 
 ######################### CUSTOM COMPUTE_LOSS #####################################################################################
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def Acompute_loss(self, model, inputs, return_outputs=False):
         """
         How the loss is computed by Trainer. By default, all models return the loss in the first element.
 
