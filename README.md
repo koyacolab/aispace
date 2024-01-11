@@ -6,7 +6,7 @@ in the [link](https://www.kaggle.com/code/inversion/make-synthetic-blueberry-yie
 
 The primary objective of this work is to adapt the mentioned technique for addressing challenges in satellite imagery, including tasks such as: generating Cloud-Free Satellite Images, creating continuous Virtual Satellite imagery, and more.
 
-This project utilized the LLM [Distilled GPT-2](https://huggingface.co/distilgpt2) version from Hugging Face because it more faster than base GPT-2 and more suitable for R&D purposes. Additionally, [Sophia's 2nd order optimizer](https://arxiv.org/abs/2305.14342) was implemented for Hugging Face Trainer for rapid training and cost reduction.
+This project utilized the LLM Distilled GPT-2 version from [Hugging Face](https://huggingface.co/distilgpt2) because it more faster than the base GPT-2 and more suitable for fast R&D purposes. Additionally, [Sophia's 2nd order optimizer](https://arxiv.org/abs/2305.14342) was implemented for Hugging Face Trainer for rapid training and cost reduction.
 
 The 'data' folder contains Landsat-8 harmonized imagery, chosen for its atmospheric correction, inclusion of cloud masks, and co-registration of all imagery for time-series usability during training.
 
