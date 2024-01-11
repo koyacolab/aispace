@@ -38,5 +38,5 @@ I. Autoregressive Language Models such as GPT-2 utilize causal from the left to 
 
 II. Representing every number as a single token is suboptimal due to a lack of generalization to new numbers and the sparsity of the provided tokens. Due to the inherent structure of numbers, learning the embeddings of numerical tokens in a purely data-driven way is ineffective. Moreover, since the GPT-2 is trained with cross-entropy loss, no notion of similarity between numerical tokens is conveyed. As a remedy, the simple inductive bias about the semantic proximity of numerical tokens, similar to positional encodings will be provided in the next steps. 
 
-III. This work utilizes only optical data from the Landsat-8 satellite, the imagery frequency of which suffers due to the cloudiness and the sparse revisit time. In the future, this will be supplemented by Sentinel-1 synthetic aperture radar images.
+III. Today this project utilizes only optical data from the Landsat-8 satellite, the imagery frequency of which suffers due to the cloudiness and the sparse revisit time. In the future, this will be supplemented by Sentinel-1 synthetic aperture radar images.
 
