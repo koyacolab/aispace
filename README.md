@@ -14,7 +14,7 @@ The 'data' folder contains Landsat-8 harmonized imagery, chosen for its atmosphe
 - ainf.ipynb for inferencing.
 - great.py contains the whole flow for fine-tuning. Wandb callback is used for generating L1,L2 metrics for a more reliable training process to prevent overfitting and put results to wandb.ai. 
 - great_dataset.py for shuffling Dataset on-the-fly, and DataCollator for experimenting.
-- great_trainer.py contains trainer with modified predict_step for calculate test dataset loss.
+- great_trainer.py contains Trainer with modified prediction_step for calculate test dataset loss.
 - hlsdataset.py and hls_inference.py for preparing satellite data for training and inferencing.
 ******************************************************************************************
 
