@@ -4,7 +4,7 @@ This project was inspired by the research presented in https://arxiv.org/abs/221
 [Kaggle Wild Blueberry Yield Prediction](https://www.kaggle.com/competitions/playground-series-s3e14) competition, 
 in the [link](https://www.kaggle.com/code/inversion/make-synthetic-blueberry-yield-data).
 
-The primary objective of this work is to adapt the mentioned technique for addressing challenges in satellite imagery, including tasks such as: generating Cloud-Free Satellite Images, creating continuous Virtual Satellite imagery, and more.
+The primary objective of this work is to assess the feasibility of applying Large Language Models (the mentioned technique) for addressing challenges in satellite imagery, including tasks such as: generating Cloud-Free Satellite Images, creating continuous Virtual Satellite imagery, and more.
 
 This project utilized the LLM Distilled GPT-2 version from [Hugging Face](https://huggingface.co/distilgpt2) because it more faster than the base GPT-2 and more suitable for fast R&D purposes. Additionally, [Sophia's 2nd order optimizer](https://arxiv.org/abs/2305.14342) was implemented for Hugging Face Trainer for rapid training and cost reduction.
 
