@@ -45,6 +45,10 @@ Results,
 
 *****************************************************************************************
 
+100x100 Landsat-8 patch (with numerical tokenizer+embedings):
+
+*****************************************************************************************
+
 Conclusions and next steps:
 
 I. Autoregressive Language Models such as GPT-2 utilize causals from the left to the right. Autoregressive approaches are preferable for generating long sequences (for example, entire documents), but since such causal models only condition on previous tokens, they are worse applicable to be applied to text-infilling tasks and not profitable from MLM pre-training. In this project, this requires random permutations of tokens, which leads to increased training time as the dataset size increases. However, MLM approaches fail to generate longer sequences due to their independence assumption. To unify both worlds and retain the benefits of autoregressive modeling in combination with a bidirectional context, several methods will be provided in the next steps.
