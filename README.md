@@ -39,7 +39,7 @@ Results,
 
 *****************************************************************************************
 
-100x100 Landsat-8 patch:
+100x100 Landsat-8 patch (with numerical embedings):
 
 <img width="632" alt="Screenshot 2024-02-11 at 18 46 10" src="https://github.com/koyacolab/aispace/assets/115004547/25df22e0-fc76-49c9-94af-c71aeb7d316b">
 
