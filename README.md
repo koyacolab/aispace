@@ -43,7 +43,9 @@ Results,
 
 <img width="607" alt="Screenshot 2024-02-11 at 18 42 11" src="https://github.com/koyacolab/aispace/assets/115004547/1f65f1c4-7650-4843-baf3-ad01a4b25e62">
 
-<img width="707" alt="Screenshot 2024-02-11 at 18 45 29" src="https://github.com/koyacolab/aispace/assets/115004547/c8a69e5f-9d1e-4117-a952-8da9ae68cc63">
+<img width="632" alt="Screenshot 2024-02-11 at 18 46 10" src="https://github.com/koyacolab/aispace/assets/115004547/25df22e0-fc76-49c9-94af-c71aeb7d316b">
+
+
 
 *****************************************************************************************
 
