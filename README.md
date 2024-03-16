@@ -39,7 +39,7 @@ Results,
 
 *****************************************************************************************
 
-100x100 Landsat-8 patch (with numerical tokenizer):
+100x100 Landsat-8 patch (with numerical tokenizer, point II from next steps):
 
 <img width="632" alt="Screenshot 2024-02-11 at 18 46 10" src="https://github.com/koyacolab/aispace/assets/115004547/25df22e0-fc76-49c9-94af-c71aeb7d316b">
 
@@ -51,9 +51,9 @@ Results,
 
 Conclusions and next steps:
 
-I. Autoregressive Language Models such as GPT-2 utilize causals from the left to the right. Autoregressive approaches are preferable for generating long sequences (for example, entire documents), but since such causal models only condition on previous tokens, they are worse applicable to be applied to text-infilling tasks and not profitable from MLM pre-training. In this project, this requires random permutations of tokens, which leads to increased training time as the dataset size increases. However, MLM approaches fail to generate longer sequences due to their independence assumption. To unify both worlds and retain the benefits of autoregressive modeling in combination with a bidirectional context, several methods will be provided in the next steps.
+I. (In progress) Autoregressive Language Models such as GPT-2 utilize causals from the left to the right. Autoregressive approaches are preferable for generating long sequences (for example, entire documents), but since such causal models only condition on previous tokens, they are worse applicable to be applied to text-infilling tasks and not profitable from MLM pre-training. In this project, this requires random permutations of tokens, which leads to increased training time as the dataset size increases. However, MLM approaches fail to generate longer sequences due to their independence assumption. To unify both worlds and retain the benefits of autoregressive modeling in combination with a bidirectional context, several methods will be provided in the next steps.
 
-II. Representing every number as a single token is suboptimal due to a lack of generalization to new numbers and the sparsity of the provided tokens. Due to the inherent structure of numbers, learning the embeddings of numerical tokens in a purely data-driven way is ineffective. Moreover, since the GPT-2 is trained with cross-entropy loss, no notion of similarity between numerical tokens is conveyed. As a remedy, the simple inductive bias about the semantic proximity of numerical tokens, similar to positional encodings will be provided in the next steps. 
+II. (Done) Representing every number as a single token is suboptimal due to a lack of generalization to new numbers and the sparsity of the provided tokens. Due to the inherent structure of numbers, learning the embeddings of numerical tokens in a purely data-driven way is ineffective. Moreover, since the GPT-2 is trained with cross-entropy loss, no notion of similarity between numerical tokens is conveyed. As a remedy, the simple inductive bias about the semantic proximity of numerical tokens, similar to positional encodings will be provided in the next steps. 
 
 III. Today this POC project utilizes only optical data from the Landsat-8 satellite, the imagery frequency of which suffers due to the cloudiness and the sparse revisit time. In the future, this will be supplemented by Sentinel-1 Synthetic Aperture Radar images.
 
