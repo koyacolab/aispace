@@ -10,7 +10,7 @@ This project utilized the LLM Distilled GPT-2 version from [Hugging Face](https:
 
 The 'data' folder contains Landsat-8 harmonized imagery, chosen for its atmospheric correction, inclusion of cloud masks, and co-registration of all imagery for time-series usability during training.
 
-- ai.ipynb  file contains training strategies for experimenting with GPT-2 fine-tuning (schedulers, etc.).
+- A0.py, A0.sh, or ai.ipynb  file contains training strategies for experimenting with GPT-2 fine-tuning (schedulers, etc.).
 - ainf.ipynb for inferencing.
 - great.py contains the whole flow for fine-tuning. Wandb callback is used for generating L1,L2 metrics for a more reliable training process to prevent overfitting and put results to wandb.ai. 
 - great_dataset.py for shuffling Dataset on-the-fly, and DataCollator for experimenting.
