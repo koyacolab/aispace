@@ -1,8 +1,6 @@
 # Virtual Satellite
 
-This project was inspired by the research presented in https://arxiv.org/abs/2210.06280 and its practical application in the 
-[Kaggle Wild Blueberry Yield Prediction](https://www.kaggle.com/competitions/playground-series-s3e14) competition, 
-in the [link](https://www.kaggle.com/code/inversion/make-synthetic-blueberry-yield-data).
+This project was inspired by the research presented in https://arxiv.org/abs/2210.06280 and https://arxiv.org/abs/2403.07815.
 
 The primary objective of this study is to assess the feasibility of applying Large Language Models for addressing challenges in satellite imagery (for regression tasks), including tasks such as: generating Cloud-Free Satellite Images, creating continuous Virtual Satellite imagery, and more.
 
