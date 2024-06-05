@@ -6,7 +6,7 @@ The primary objective of this study is to assess the feasibility of applying Lar
 
 This project utilized the LLM Distilled GPT-2 version from [Hugging Face](https://huggingface.co/distilgpt2) because it more faster than the base GPT-2 and more suitable for fast R&D purposes. Additionally, [Sophia's](https://arxiv.org/abs/2305.14342) [ 2nd order optimizer](https://github.com/kyegomez/Sophia) was implemented for Hugging Face Trainer for rapid training and cost reduction.
 
-The 'data' folder contains Landsat-8 harmonized imagery, chosen for its atmospheric correction, inclusion of cloud masks, and co-registration of all imagery for time-series usability during training.
+The 'data' folder contains Landsat-8 HLS (Harmonized Landsat and Sentinel-2) time series images.
 
 - A0.py, A0.sh, or ai.ipynb file contains training flows for experimenting with GPT-2 fine-tuning (schedulers, etc.).
 - ainf.ipynb for inferencing.
