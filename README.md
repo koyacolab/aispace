@@ -1,5 +1,9 @@
 # Virtual Satellite
 
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+Copyright (C) 2025 Nikolay Uvarov
+
 This project was inspired by the research presented in https://arxiv.org/abs/2210.06280 and https://arxiv.org/abs/2403.07815 and https://www.nature.com/articles/s42256-023-00639-z.
 
 The primary objective of this study is to assess the feasibility of applying Large Language Models for addressing challenges in satellite imagery (for regression tasks), including tasks such as: generating Cloud-Free Satellite Images, creating continuous Virtual Satellite imagery, and more.
