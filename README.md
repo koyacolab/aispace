@@ -4,15 +4,13 @@ GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007
 Copyright (C) 2023 Nikolay Uvarov
 
-This project uses the GPT-2 model, which is licensed under the MIT License.
-© OpenAI (https://github.com/openai/gpt-2)
-Additional modifications © 2025 Nikolay Uvarov
-
 This project was inspired by the research presented in https://arxiv.org/abs/2210.06280 and https://arxiv.org/abs/2403.07815 and https://www.nature.com/articles/s42256-023-00639-z.
 
 The primary objective of this study is to assess the feasibility of applying Large Language Models for addressing challenges in satellite imagery (for regression tasks), including tasks such as: generating Cloud-Free Satellite Images, creating continuous Virtual Satellite imagery, and more.
 
-This project utilized the LLM Distilled GPT-2 version from [Hugging Face](https://huggingface.co/distilgpt2) because it more faster than the base GPT-2 and more suitable for fast R&D purposes. Additionally, [Sophia's](https://arxiv.org/abs/2305.14342) [ 2nd order optimizer](https://github.com/kyegomez/Sophia) was implemented for Hugging Face Trainer for rapid training and cost reduction. Originally GPT-2 developed by OpenAI and distributed under the MIT License.
+This project utilized the LLM Distilled GPT-2 version from [Hugging Face](https://huggingface.co/distilgpt2) because it more faster than the base GPT-2 and more suitable for fast R&D purposes. Additionally, [Sophia's](https://arxiv.org/abs/2305.14342) [ 2nd order optimizer](https://github.com/kyegomez/Sophia) was implemented for Hugging Face Trainer for rapid training and cost reduction. This project incorporates the GPT-2 model available on Hugging Face Hub
+(https://huggingface.co/openai-community/gpt2), originally developed by OpenAI
+and distributed under the MIT License.
 
 The 'data' folder contains Landsat-8 HLS (Harmonized Landsat and Sentinel-2) time series images.
 
