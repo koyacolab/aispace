@@ -46,3 +46,6 @@ II. (Done) Representing every number as a single token is suboptimal due to a la
 
 III. Today this POC project utilizes only optical data from the Landsat-8 satellite, the imagery frequency of which suffers due to the cloudiness and the sparse revisit time. In the future, this will be supplemented by Sentinel-1 Synthetic Aperture Radar images.
 
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+Copyright (C) 2023 Nikolay Uvarov
